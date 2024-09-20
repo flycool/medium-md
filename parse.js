@@ -275,7 +275,7 @@ ${code}
       }
     });
 
-    console.log("sb==== ", sb.toString());
+    //console.log("sb==== ", sb.toString());
 
     return sb.toString();
   };
@@ -364,14 +364,38 @@ ${code}
     return codeArray;
   }
 
+  const escapeHTML = (str) =>
+    str.replace(
+      /[&<>'"]/g,
+      (tag) =>
+        ({
+          "&": "&amp;",
+          "<": "&lt;",
+          ">": "&gt;",
+          "'": "&#39;",
+          '"': "&quot;",
+        }[tag] || tag)
+    );
+
+  const unescapeHTML = (str) =>
+    str.replace(
+      /&amp;|&lt;|&gt;|&#39;|&quot;/g,
+      (tag) =>
+        ({
+          "&amp;": "&",
+          "&lt;": "<",
+          "&gt;": ">",
+          "&#39;": "'",
+          "&quot;": '"',
+        }[tag] || tag)
+    );
+
   function parseSpanCode(html) {
     const spanList = html.split("<br>");
     const sb = new StringBuilder();
     [...spanList].forEach((s, index) => {
       s.split("</span>").forEach((ss) => {
-        // TODO
-        //const code = StringEscapeUtils.unescapeHtml4(removeSpan(ss));
-        const code = removeSpan(ss);
+        const code = unescapeHTML(removeSpan(ss));
         sb.append(code);
       });
       if (index !== spanList.length - 1) {
@@ -402,6 +426,6 @@ ${code}
     return result;
   }
 
-//   parseMedium();
-    downloadFile(parseMedium(), fileName);
+  // parseMedium();
+  downloadFile(parseMedium(), fileName);
 })();
