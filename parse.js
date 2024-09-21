@@ -275,10 +275,37 @@ ${code}
       }
     });
 
-    //console.log("sb==== ", sb.toString());
+    // console.log("sb==== ", sb.toString());
 
     return sb.toString();
   };
+
+  function isStringBlank(str) {
+    if (str === "") return true;
+    for (s of str) {
+      if (s !== " ") {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  function formatHasBlankText(originalText, formatTrimText) {
+    const isFirstBlank = originalText.startsWith(" ");
+    const isLastBlank = originalText.at(-1) === " ";
+
+    let result = formatTrimText;
+    const blank = " ";
+
+    if (isFirstBlank && isLastBlank) {
+      result = blank + result + blank;
+    } else if (isFirstBlank) {
+      result = blank + result;
+    } else if (isLastBlank) {
+      result += blank;
+    }
+    return result;
+  }
 
   function parseParagraph(sb, e, content) {
     const children = e.children;
@@ -298,12 +325,20 @@ ${code}
 
         const strongTag = child.getElementsByTagName("strong")[0];
         if (strongTag !== undefined) {
-          const codeStrongText = bold(codeText);
+          const codeStrongText = formatHasBlankText(
+            codeText,
+            bold(codeText)
+          );
           const s = codeSb.toString().replace(codeText, codeStrongText);
           codeSb.clearAndAppend(s);
         }
       } else if (tName === "strong") {
-        const strongText = bold(originalText);
+        const st = isStringBlank(originalText) ? originalText : bold(originalText.trim())
+        const strongText = formatHasBlankText(
+          originalText,
+          st
+        );
+
         content2 = composeString(codeSb, content2, originalText, strongText);
 
         const atag = child.getElementsByTagName("a")[0];
