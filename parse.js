@@ -266,7 +266,7 @@ ${code}
 
           codes.forEach((code) => {
             const fcode = formatCode(code);
-            sb.append(fcode).br();
+            sb.append(fcode).br().br();
           });
           break;
 
@@ -353,7 +353,7 @@ ${code}
 
         cmap.forEach((c, index, map) => {
           codeSb.append(c);
-          if (index !== map.length - 1) {
+          if (index !== cmap.length - 1) {
             codeSb.br();
           }
         });
