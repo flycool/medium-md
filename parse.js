@@ -281,25 +281,26 @@ ${code}
   };
 
   function parseParagraph(sb, e, content) {
+    const children = e.children;
+    if (children.length === 0) {
+      return sb.append(content);
+    }
     const codeSb = new StringBuilder();
     let content2 = content;
 
-    const children = e.children;
     for (child of children) {
       const tName = child.tagName.toLowerCase();
       const originalText = child.textContent;
+
       if (tName === "code") {
         const codeText = code(originalText);
         content2 = composeString(codeSb, content2, originalText, codeText);
 
         const strongTag = child.getElementsByTagName("strong")[0];
         if (strongTag !== undefined) {
-          const text = strongTag.textContent;
-          //   if (text !== "") {
           const codeStrongText = bold(codeText);
           const s = codeSb.toString().replace(codeText, codeStrongText);
           codeSb.clearAndAppend(s);
-          //   }
         }
       } else if (tName === "strong") {
         const strongText = bold(originalText);
@@ -307,13 +308,10 @@ ${code}
 
         const atag = child.getElementsByTagName("a")[0];
         if (atag !== undefined) {
-          const text = atag.textContent;
-          //   if (text !== "") {
           const link = atag.getAttribute("href");
           const alink = a(strongText, link);
           const s = codeSb.toString().replace(strongText, alink);
           codeSb.clearAndAppend(s);
-          //   }
         }
       } else if (tName === "a") {
         const link = child.getAttribute("href");
