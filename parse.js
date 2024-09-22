@@ -332,6 +332,15 @@ ${code}
           const s = codeSb.toString().replace(codeText, codeStrongText);
           codeSb.clearAndAppend(s);
         }
+
+        const aTag = child.getElementsByTagName('a')[0]
+        if(aTag !== undefined) {
+          const link = aTag.getAttribute('href')
+          const alink = a(codeText, link)
+          const s = codeSb.toString().replace(codeText, alink);
+          codeSb.clearAndAppend(s);
+        }
+
       } else if (tName === "strong") {
         const st = isStringBlank(originalText) ? originalText : bold(originalText.trim())
         const strongText = formatHasBlankText(
