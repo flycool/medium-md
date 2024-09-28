@@ -377,8 +377,13 @@ ${code}
 
   // get gist code from iframe
   function getGistFormatCode(e) {
-    const iframdom = e.contentWindow.document;
+    let iframdom
     const codeArray = new Array();
+    try {
+      iframdom = e.contentWindow.document;
+    } catch (error) {
+      return codeArray
+    }
     if (iframdom) {
       const gistDatas = iframdom.getElementsByClassName("gist-data");
       for (gitstCode of gistDatas) {
