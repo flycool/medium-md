@@ -17,6 +17,8 @@
     }
   },
   "icons": {
-    "16": "blog.png"
+    "16": "blog.png",
+    "32": "blog.png",
+    "48": "blog.png"
   }
 }
