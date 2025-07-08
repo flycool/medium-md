@@ -110,6 +110,7 @@ ${code}
 
   let fileName = "";
   let publishTime = "";
+  let orgUrl = "";
 
   const parseMedium = function () {
     const hSet = new Set();
@@ -117,6 +118,7 @@ ${code}
     hSet.add("ProAndroidDev");
     hSet.add("Listen");
     hSet.add("Share");
+    hSet.add("More");
 
     const sb = new StringBuilder();
 
@@ -127,11 +129,15 @@ ${code}
       if (property === "og:title") {
         const title = meta.getAttribute("content");
         fileName = `${publishTime} ${title}.md`;
-        break;
       } else if (property === "article:published_time") {
         const ptime = meta.getAttribute("content");
         const ptimeString = ptime.split("T")[0];
         publishTime = ptimeString;
+      } else if (property === "og:url") {
+        const url = meta.getAttribute("content");
+        orgUrl = url;
+        sb.append(orgUrl).br().br();
+        break;
       }
     }
 
@@ -167,6 +173,9 @@ ${code}
             const h2Text = h2e?.textContent;
 
             let link = aChild.getAttribute("href");
+            if(link.includes("post_audio_button")) {
+              return;
+            }
             if (!link.startsWith("https://")) {
               link = "https://proandroiddev.com" + link;
             }
