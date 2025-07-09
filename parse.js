@@ -173,7 +173,7 @@ ${code}
             const h2Text = h2e?.textContent;
 
             let link = aChild.getAttribute("href");
-            if(link.includes("post_audio_button")) {
+            if (link.includes("post_audio_button")) {
               return;
             }
             if (!link.startsWith("https://")) {
@@ -193,21 +193,24 @@ ${code}
           break;
         case "h1":
           const hone = h1(e.textContent);
-          sb.append(hone).br().br();
+          const honeText = replaceApostrophen(hone);
+          sb.append(honeText).br().br();
           break;
         case "h2":
           if (hSet.has(e.textContent)) {
             return;
           }
           const htwo = h2(e.textContent);
-          sb.append(htwo).br().br();
+          const htwoText = replaceApostrophen(htwo);
+          sb.append(htwoText).br().br();
           break;
         case "h3":
           if (hSet.has(e.textContent)) {
             return;
           }
           const hthree = h3(e.textContent);
-          sb.append(hthree).br().br();
+          const hthreeText = replaceApostrophen(hthree);
+          sb.append(hthreeText).br().br();
           break;
         case "p":
           const pe = e.firstElementChild;
@@ -316,13 +319,37 @@ ${code}
     return result;
   }
 
-  function parseParagraph(sb, e, content) {
+  // not use
+  function getformatText(e) {
+    let node = e;
+    let formatText = "";
+    while (node.firstElementChild != null) {
+      const child = node.firstElementChild;
+      const tName = child.tagName.toLowerCase();
+      const originalText = child.textContent;
+
+      if (tName === "code") {
+        formatText = code(formatText === "" ? originalText : formatText);
+      } else if (tName === "strong") {
+        formatText = bold(formatText === "" ? originalText : formatText);
+      } else if (tName === "a") {
+        const aTag = child.getElementsByTagName("a")[0];
+        const link = aTag.getAttribute("href");
+        formatText = a((formatText === "" ? originalText : formatText), link);
+      }
+      node = e.firstElementChild;
+    }
+    return formatText;
+  }
+
+  function parseParagraph(sb, e, c) {
     const children = e.children;
     if (children.length === 0) {
-      return sb.append(content);
+      return sb.append(replaceApostrophen(c));
     }
+
     const codeSb = new StringBuilder();
-    let content2 = content;
+    let content2 = c;
 
     for (child of children) {
       const tName = child.tagName.toLowerCase();
@@ -334,28 +361,23 @@ ${code}
 
         const strongTag = child.getElementsByTagName("strong")[0];
         if (strongTag !== undefined) {
-          const codeStrongText = formatHasBlankText(
-            codeText,
-            bold(codeText)
-          );
+          const codeStrongText = formatHasBlankText(codeText, bold(codeText));
           const s = codeSb.toString().replace(codeText, codeStrongText);
           codeSb.clearAndAppend(s);
         }
 
-        const aTag = child.getElementsByTagName('a')[0]
-        if(aTag !== undefined) {
-          const link = aTag.getAttribute('href')
-          const alink = a(codeText, link)
+        const aTag = child.getElementsByTagName("a")[0];
+        if (aTag !== undefined) {
+          const link = aTag.getAttribute("href");
+          const alink = a(codeText, link);
           const s = codeSb.toString().replace(codeText, alink);
           codeSb.clearAndAppend(s);
         }
-
       } else if (tName === "strong") {
-        const st = isStringBlank(originalText) ? originalText : bold(originalText.trim())
-        const strongText = formatHasBlankText(
-          originalText,
-          st
-        );
+        const st = isStringBlank(originalText)
+          ? originalText
+          : bold(originalText.trim());
+        const strongText = formatHasBlankText(originalText, st);
 
         content2 = composeString(codeSb, content2, originalText, strongText);
 
@@ -372,8 +394,9 @@ ${code}
         content2 = composeString(codeSb, content2, originalText, a1);
       }
     }
-    sb.append(codeSb.toString());
-    return sb.append(content2);
+
+    sb.append(replaceApostrophen(codeSb.toString()));
+    return sb.append(replaceApostrophen(content2));
   }
 
   function composeString(codeSb, content, originalText, formatText) {
@@ -386,12 +409,12 @@ ${code}
 
   // get gist code from iframe
   function getGistFormatCode(e) {
-    let iframdom
+    let iframdom;
     const codeArray = new Array();
     try {
       iframdom = e.contentWindow.document;
     } catch (error) {
-      return codeArray
+      return codeArray;
     }
     if (iframdom) {
       const gistDatas = iframdom.getElementsByClassName("gist-data");
@@ -418,6 +441,11 @@ ${code}
       }
     }
     return codeArray;
+  }
+
+  // 将 ‘（中文）改成 '(英文的)
+  function replaceApostrophen(content) {
+    return content.replace(/’/g, "'");
   }
 
   const escapeHTML = (str) =>
