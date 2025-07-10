@@ -247,20 +247,22 @@ ${code}
           }
           break;
         case "blockquote":
-          sb.append(blockquote(e.textContent)).br().br();
+          parseParagraph(sb, e.firstChild, e.textContent, "> ").br().br();
           break;
         case "ol":
           [...e.children].forEach((li, index) => {
             const litext = li.textContent;
             const mdliString = ol(index + 1, litext);
-            parseParagraph(sb, li, mdliString).br().br();
+            const firstItem = `${index + 1}. `;
+            parseParagraph(sb, li, mdliString, firstItem).br().br();
           });
           break;
         case "ul":
           [...e.children].forEach((liEl) => {
             const litext = liEl.textContent;
             const mdliString = li(litext);
-            parseParagraph(sb, liEl, mdliString).br().br();
+            const firstItem = "- ";
+            parseParagraph(sb, liEl, mdliString, firstItem).br().br();
           });
           break;
         case "figure":
@@ -319,92 +321,100 @@ ${code}
     return result;
   }
 
-  // not use
-  function getformatText(e) {
-    let node = e;
-    let formatText = "";
-    while (node.firstElementChild != null) {
-      const child = node.firstElementChild;
-      const tName = child.tagName.toLowerCase();
-      const originalText = child.textContent;
-
-      if (tName === "code") {
-        formatText = code(formatText === "" ? originalText : formatText);
-      } else if (tName === "strong") {
-        formatText = bold(formatText === "" ? originalText : formatText);
-      } else if (tName === "a") {
-        const aTag = child.getElementsByTagName("a")[0];
-        const link = aTag.getAttribute("href");
-        formatText = a((formatText === "" ? originalText : formatText), link);
-      }
-      node = e.firstElementChild;
-    }
-    return formatText;
+  function isNumberic(value) {
+    return !isNaN(parseFloat(value)) && !isNaN(value);
   }
 
-  function parseParagraph(sb, e, c) {
+  function formatArray(index, originalText, array, formatCode) {
+    for (let i = index; i < array.length; i++) {
+      const w = array[i];
+      if (originalText === w) {
+        array[i] = formatCode;
+        loopIndex = i;
+        break;
+      }
+    }
+  }
+
+  function parseParagraph(sb, e, c, firstItem = "") {
     const children = e.children;
     if (children.length === 0) {
       return sb.append(replaceApostrophen(c));
     }
 
-    const codeSb = new StringBuilder();
-    let content2 = c;
+    const patternOuterHtml = />(.*?)</g;
+    const outerHTML = e.outerHTML;
+    // console.log("outerhtml==", outerHTML);
+
+    let orgWordArray = outerHTML.match(patternOuterHtml);
+
+    if (orgWordArray !== null) {
+      orgWordArray = orgWordArray
+        .map((s) => {
+          const i = s.lastIndexOf(">");
+          return s.slice(i + 1, -1);
+        })
+        .filter((s) => s !== "");
+    }
+
+    // console.log("orgWordArray:=", orgWordArray);
+
+    let loopIndex = -1;
 
     for (child of children) {
       const tName = child.tagName.toLowerCase();
       const originalText = child.textContent;
+      let formatCode = originalText;
 
       if (tName === "code") {
         const codeText = code(originalText);
-        content2 = composeString(codeSb, content2, originalText, codeText);
+        formatCode = codeText;
 
         const strongTag = child.getElementsByTagName("strong")[0];
         if (strongTag !== undefined) {
           const codeStrongText = formatHasBlankText(codeText, bold(codeText));
-          const s = codeSb.toString().replace(codeText, codeStrongText);
-          codeSb.clearAndAppend(s);
+          formatCode = codeStrongText;
         }
 
         const aTag = child.getElementsByTagName("a")[0];
         if (aTag !== undefined) {
           const link = aTag.getAttribute("href");
           const alink = a(codeText, link);
-          const s = codeSb.toString().replace(codeText, alink);
-          codeSb.clearAndAppend(s);
+          formatCode = alink;
         }
+
+        formatArray(loopIndex + 1, originalText, orgWordArray, formatCode);
       } else if (tName === "strong") {
         const st = isStringBlank(originalText)
           ? originalText
           : bold(originalText.trim());
         const strongText = formatHasBlankText(originalText, st);
-
-        content2 = composeString(codeSb, content2, originalText, strongText);
+        formatCode = strongText;
 
         const atag = child.getElementsByTagName("a")[0];
         if (atag !== undefined) {
           const link = atag.getAttribute("href");
           const alink = a(strongText, link);
-          const s = codeSb.toString().replace(strongText, alink);
-          codeSb.clearAndAppend(s);
+          formatCode = alink;
         }
+
+        formatArray(loopIndex + 1, originalText, orgWordArray, formatCode);
       } else if (tName === "a") {
         const link = child.getAttribute("href");
         const a1 = a(originalText, link);
-        content2 = composeString(codeSb, content2, originalText, a1);
+        formatCode = a1;
+
+        formatArray(loopIndex + 1, originalText, orgWordArray, formatCode);
       }
     }
 
-    sb.append(replaceApostrophen(codeSb.toString()));
-    return sb.append(replaceApostrophen(content2));
-  }
+    if (firstItem !== "") {
+      orgWordArray.unshift(firstItem);
+    }
 
-  function composeString(codeSb, content, originalText, formatText) {
-    const index = content.indexOf(originalText);
-    const preString = content.substring(0, index);
-    codeSb.append(preString).append(formatText);
+    sb.append(orgWordArray.join(""));
 
-    return content.substring(index + originalText.length);
+    return sb;
   }
 
   // get gist code from iframe
