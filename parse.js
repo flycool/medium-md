@@ -112,14 +112,150 @@ ${code}
   let publishTime = "";
   let orgUrl = "";
 
-  const parseMedium = function () {
+  function parseElement(sb, e) {
     const hSet = new Set();
-    hSet.add("Follow");
-    hSet.add("ProAndroidDev");
-    hSet.add("Listen");
-    hSet.add("Share");
-    hSet.add("More");
 
+    const tagName = e.tagName.toLowerCase();
+    switch (tagName) {
+      case "div":
+        const attr = e.getAttribute("role");
+        if (attr === "separator") {
+          sb.append(separator()).br().br();
+          return;
+        }
+
+        const aChild = e.firstElementChild;
+        if (aChild && aChild.tagName.toLowerCase() === "a") {
+          const atext = aChild.textContent;
+          if (
+            aChild.getAttribute("data-testid") === "publicationName" ||
+            atext === undefined ||
+            atext === ""
+          ) {
+            return;
+          }
+
+          const h2e = e.getElementsByTagName("h2")[0];
+          const h2Text = h2e?.textContent;
+
+          let link = aChild.getAttribute("href");
+          if (link.includes("post_audio_button")) {
+            return;
+          }
+          if (!link.startsWith("https://")) {
+            link = "https://proandroiddev.com" + link;
+          }
+          const a1 = a(h2Text ? h2Text : link, link);
+          sb.append(a1).br().br();
+
+          hSet.add(h2Text ? h2Text : "");
+
+          const h3e = e.getElementsByTagName("h3")[0];
+          hSet.add(h3e?.textContent);
+
+          const pe = e.getElementsByTagName("p")[0];
+          hSet.add(pe?.textContent);
+        }
+        break;
+      case "h1":
+        const hone = h1(e.textContent);
+        const honeText = replaceApostrophen(hone);
+        sb.append(honeText).br().br();
+        break;
+      case "h2":
+        if (hSet.has(e.textContent)) {
+          return;
+        }
+        const htwo = h2(e.textContent);
+        const htwoText = replaceApostrophen(htwo);
+        sb.append(htwoText).br().br();
+        break;
+      case "h3":
+        if (hSet.has(e.textContent)) {
+          return;
+        }
+        const hthree = h3(e.textContent);
+        const hthreeText = replaceApostrophen(hthree);
+        sb.append(hthreeText).br().br();
+        break;
+      case "p":
+        const pe = e.firstElementChild;
+        if (pe && pe.tagName.toLowerCase() === "button") {
+          return;
+        }
+        if (
+          e.parentElement.tagName.toLowerCase() === "blockquote" ||
+          hSet.has(e.textContent)
+        ) {
+          return;
+        }
+
+        parseParagraph(sb, e, e.textContent).br().br();
+        break;
+      // case "pre":
+      //   const firstSpan = e.firstElementChild;
+      //   const codeSnippet = firstSpan?.innerHTML;
+
+      //   const codeFrags = codeSnippet.split("<br>");
+      //   const codeSb = new StringBuilder();
+
+      //   codeFrags.forEach((c) => {
+      //     codeSb.append(c).br();
+      //   });
+
+      //   sb.append(formatCode(codeSb.toString())).br().br();
+      //   break;
+      case "span":
+        const hasAttr = e.hasAttribute("data-selectable-paragraph");
+        if (hasAttr) {
+          const result = parseSpanCode(e.innerHTML);
+          sb.append(formatCode(result)).br().br();
+        }
+        break;
+      case "blockquote":
+        parseParagraph(sb, e.firstChild, e.textContent, "> ").br().br();
+        break;
+      case "ol":
+        [...e.children].forEach((li, index) => {
+          const litext = li.textContent;
+          const mdliString = ol(index + 1, litext);
+          const firstItem = `${index + 1}. `;
+          parseParagraph(sb, li, mdliString, firstItem).br().br();
+        });
+        break;
+      case "ul":
+        [...e.children].forEach((liEl) => {
+          const litext = liEl.textContent;
+          const mdliString = li(litext);
+          const firstItem = "- ";
+          parseParagraph(sb, liEl, mdliString, firstItem).br().br();
+        });
+        break;
+      case "figure":
+        const imgElement = e.getElementsByTagName("img")[0];
+        const imgUrl = imgElement?.getAttribute("src");
+        if (imgUrl && imgUrl !== "") {
+          const imgText = img("", imgUrl);
+          sb.append(imgText).br();
+
+          sb.append(e.textContent).br().br();
+        }
+        break;
+      case "iframe":
+        const codes = getGistFormatCode(e);
+
+        codes.forEach((code) => {
+          const fcode = formatCode(code);
+          sb.append(fcode).br().br();
+        });
+        break;
+
+      default:
+        break;
+    }
+  }
+
+  const parseMedium = function () {
     const sb = new StringBuilder();
 
     // get the file name
@@ -141,153 +277,29 @@ ${code}
       }
     }
 
-    const article = document.getElementsByTagName("article")[0];
-    const articleAllElements = article.getElementsByTagName("*");
+    const section = document.getElementsByTagName("section")[0];
 
-    [...articleAllElements].forEach((e) => {
-      const tagName = e.tagName.toLowerCase();
+    // deep first search
+    if (section) {
+      const stack = [];
+      stack.push(section);
+      while (stack.length > 0) {
+        const currentElement = stack.pop();
 
-      switch (tagName) {
-        case "button":
-          hSet.add(e.textCotent);
-          break;
-        case "div":
-          const attr = e.getAttribute("role");
-          if (attr === "separator") {
-            sb.append(separator()).br().br();
-            return;
-          }
+        const classAttrText = currentElement.getAttribute("class");
+        if(classAttrText?.includes("speechify-ignore")) {
+          // no parse this element
+          continue;
+        }
 
-          const aChild = e.firstElementChild;
-          if (aChild && aChild.tagName.toLowerCase() === "a") {
-            const atext = aChild.textContent;
-            if (
-              aChild.getAttribute("data-testid") === "publicationName" ||
-              atext === undefined ||
-              atext === ""
-            ) {
-              return;
-            }
+        parseElement(sb, currentElement);
 
-            const h2e = e.getElementsByTagName("h2")[0];
-            const h2Text = h2e?.textContent;
-
-            let link = aChild.getAttribute("href");
-            if (link.includes("post_audio_button")) {
-              return;
-            }
-            if (!link.startsWith("https://")) {
-              link = "https://proandroiddev.com" + link;
-            }
-            const a1 = a(h2Text ? h2Text : link, link);
-            sb.append(a1).br().br();
-
-            hSet.add(h2Text ? h2Text : "");
-
-            const h3e = e.getElementsByTagName("h3")[0];
-            hSet.add(h3e?.textContent);
-
-            const pe = e.getElementsByTagName("p")[0];
-            hSet.add(pe?.textContent);
-          }
-          break;
-        case "h1":
-          const hone = h1(e.textContent);
-          const honeText = replaceApostrophen(hone);
-          sb.append(honeText).br().br();
-          break;
-        case "h2":
-          if (hSet.has(e.textContent)) {
-            return;
-          }
-          const htwo = h2(e.textContent);
-          const htwoText = replaceApostrophen(htwo);
-          sb.append(htwoText).br().br();
-          break;
-        case "h3":
-          if (hSet.has(e.textContent)) {
-            return;
-          }
-          const hthree = h3(e.textContent);
-          const hthreeText = replaceApostrophen(hthree);
-          sb.append(hthreeText).br().br();
-          break;
-        case "p":
-          const pe = e.firstElementChild;
-          if (pe && pe.tagName.toLowerCase() === "button") {
-            return;
-          }
-          if (
-            e.parentElement.tagName.toLowerCase() === "blockquote" ||
-            hSet.has(e.textContent)
-          ) {
-            return;
-          }
-
-          parseParagraph(sb, e, e.textContent).br().br();
-          break;
-        // case "pre":
-        //   const firstSpan = e.firstElementChild;
-        //   const codeSnippet = firstSpan?.innerHTML;
-
-        //   const codeFrags = codeSnippet.split("<br>");
-        //   const codeSb = new StringBuilder();
-
-        //   codeFrags.forEach((c) => {
-        //     codeSb.append(c).br();
-        //   });
-
-        //   sb.append(formatCode(codeSb.toString())).br().br();
-        //   break;
-        case "span":
-          const hasAttr = e.hasAttribute("data-selectable-paragraph");
-          if (hasAttr) {
-            const result = parseSpanCode(e.innerHTML);
-            sb.append(formatCode(result)).br().br();
-          }
-          break;
-        case "blockquote":
-          parseParagraph(sb, e.firstChild, e.textContent, "> ").br().br();
-          break;
-        case "ol":
-          [...e.children].forEach((li, index) => {
-            const litext = li.textContent;
-            const mdliString = ol(index + 1, litext);
-            const firstItem = `${index + 1}. `;
-            parseParagraph(sb, li, mdliString, firstItem).br().br();
-          });
-          break;
-        case "ul":
-          [...e.children].forEach((liEl) => {
-            const litext = liEl.textContent;
-            const mdliString = li(litext);
-            const firstItem = "- ";
-            parseParagraph(sb, liEl, mdliString, firstItem).br().br();
-          });
-          break;
-        case "figure":
-          const imgElement = e.getElementsByTagName("img")[0];
-          const imgUrl = imgElement?.getAttribute("src");
-          if (imgUrl && imgUrl !== "") {
-            const imgText = img("", imgUrl);
-            sb.append(imgText).br();
-
-            sb.append(e.textContent).br().br();
-          }
-          break;
-        case "iframe":
-          const codes = getGistFormatCode(e);
-
-          codes.forEach((code) => {
-            const fcode = formatCode(code);
-            sb.append(fcode).br().br();
-          });
-          break;
-
-        default:
-          break;
+        const children = currentElement.children;
+        for (let i = children.length - 1; i >= 0; i--) {
+          stack.push(children[i]);
+        }
       }
-    });
+    }
 
     // console.log("sb==== ", sb.toString());
 
