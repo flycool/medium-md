@@ -412,6 +412,10 @@ ${code}
       orgWordArray.unshift(firstItem);
     }
 
+    orgWordArray = orgWordArray.map((s) => {
+      return replaceApostrophen(s);
+    });
+
     sb.append(orgWordArray.join(""));
 
     return sb;
