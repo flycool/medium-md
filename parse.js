@@ -113,14 +113,14 @@ ${code}
   let orgUrl = "";
 
   // return value : true 表示此elelment不处理它的children
-  function parseElement(sb, e, hSet) {
+  function parseElement(sb, e) {
     const tagName = e.tagName.toLowerCase();
     switch (tagName) {
       case "div":
         const attr = e.getAttribute("role");
         if (attr === "separator") {
           sb.append(separator()).br().br();
-          return false;
+          return true;
         }
 
         const aChild = e.firstElementChild;
@@ -178,7 +178,7 @@ ${code}
         // }
 
         parseParagraph(sb, e, e.textContent).br().br();
-        break;
+        return true;
       case "span":
         const hasAttr = e.hasAttribute("data-selectable-paragraph");
         if (hasAttr) {
@@ -196,7 +196,7 @@ ${code}
           const firstItem = `${index + 1}. `;
           parseParagraph(sb, li, mdliString, firstItem).br().br();
         });
-        break;
+        return true;
       case "ul":
         [...e.children].forEach((liEl) => {
           const litext = liEl.textContent;
@@ -204,8 +204,8 @@ ${code}
           const firstItem = "- ";
           parseParagraph(sb, liEl, mdliString, firstItem).br().br();
         });
-        break;
-      case "figure":
+        return true;
+      case "picture":
         const imgElement = e.getElementsByTagName("img")[0];
         const imgUrl = imgElement?.getAttribute("src");
         if (imgUrl && imgUrl !== "") {
@@ -214,7 +214,7 @@ ${code}
 
           sb.append(e.textContent).br().br();
         }
-        break;
+        return true;
       case "iframe":
         decodeVideoUrl(e, sb);
 
@@ -224,8 +224,7 @@ ${code}
           const fcode = formatCode(code);
           sb.append(fcode).br().br();
         });
-        break;
-
+        return true;
       default:
         break;
     }
@@ -253,7 +252,6 @@ ${code}
   }
 
   const parseMedium = function () {
-    const hSet = new Set();
     const sb = new StringBuilder();
 
     // get the file name
@@ -281,7 +279,9 @@ ${code}
     if (section) {
       const stack = [];
       stack.push(section);
+      let count = 0;
       while (stack.length > 0) {
+        count++;
         const currentElement = stack.pop();
 
         const classAttrText = currentElement.getAttribute("class");
@@ -290,7 +290,7 @@ ${code}
           continue;
         }
 
-        const result = parseElement(sb, currentElement, hSet);
+        const result = parseElement(sb, currentElement);
 
         if(result) continue;
 
@@ -299,6 +299,7 @@ ${code}
           stack.push(children[i]);
         }
       }
+      // console.log("count==", count);
     }
 
     // console.log("sb==== ", sb.toString());
