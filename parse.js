@@ -112,6 +112,7 @@ ${code}
   let publishTime = "";
   let orgUrl = "";
 
+  // return value : true 表示此elelment不处理它的children
   function parseElement(sb, e, hSet) {
     const tagName = e.tagName.toLowerCase();
     switch (tagName) {
@@ -119,7 +120,7 @@ ${code}
         const attr = e.getAttribute("role");
         if (attr === "separator") {
           sb.append(separator()).br().br();
-          return;
+          return false;
         }
 
         const aChild = e.firstElementChild;
@@ -130,7 +131,7 @@ ${code}
             atext === undefined ||
             atext === ""
           ) {
-            return;
+            return false;
           }
 
           const h2e = e.getElementsByTagName("h2")[0];
@@ -138,21 +139,15 @@ ${code}
 
           let link = aChild.getAttribute("href");
           if (link.includes("post_audio_button")) {
-            return;
+            return false;
           }
-          if (!link.startsWith("https://")) {
-            link = "https://proandroiddev.com" + link;
-          }
+          // if (!link.startsWith("https://") || !link.startsWith("http://")) {
+          //   link = "https://proandroiddev.com" + link;
+          // }
           const a1 = a(h2Text ? h2Text : link, link);
           sb.append(a1).br().br();
 
-          hSet.add(h2Text ? h2Text : "");
-
-          const h3e = e.getElementsByTagName("h3")[0];
-          hSet.add(h3e?.textContent);
-
-          const pe = e.getElementsByTagName("p")[0];
-          hSet.add(pe?.textContent);
+          return true;
         }
         break;
       case "h1":
@@ -161,48 +156,29 @@ ${code}
         sb.append(honeText).br().br();
         break;
       case "h2":
-        if (hSet.has(e.textContent)) {
-          return;
-        }
         const htwo = h2(e.textContent);
         const htwoText = replaceApostrophen(htwo);
         sb.append(htwoText).br().br();
         break;
       case "h3":
-        if (hSet.has(e.textContent)) {
-          return;
-        }
         const hthree = h3(e.textContent);
         const hthreeText = replaceApostrophen(hthree);
         sb.append(hthreeText).br().br();
         break;
       case "p":
         const pe = e.firstElementChild;
-        if (pe && pe.tagName.toLowerCase() === "button") {
-          return;
-        }
-        if (
-          e.parentElement.tagName.toLowerCase() === "blockquote" ||
-          hSet.has(e.textContent)
-        ) {
-          return;
-        }
+        // if (pe && pe.tagName.toLowerCase() === "button") {
+        //   return;
+        // }
+        // if (
+        //   e.parentElement.tagName.toLowerCase() === "blockquote" ||
+        //   hSet.has(e.textContent)
+        // ) {
+        //   return;
+        // }
 
         parseParagraph(sb, e, e.textContent).br().br();
         break;
-      // case "pre":
-      //   const firstSpan = e.firstElementChild;
-      //   const codeSnippet = firstSpan?.innerHTML;
-
-      //   const codeFrags = codeSnippet.split("<br>");
-      //   const codeSb = new StringBuilder();
-
-      //   codeFrags.forEach((c) => {
-      //     codeSb.append(c).br();
-      //   });
-
-      //   sb.append(formatCode(codeSb.toString())).br().br();
-      //   break;
       case "span":
         const hasAttr = e.hasAttribute("data-selectable-paragraph");
         if (hasAttr) {
@@ -253,6 +229,7 @@ ${code}
       default:
         break;
     }
+    return false;
   }
 
   function decodeVideoUrl(e, sb) {
@@ -313,7 +290,9 @@ ${code}
           continue;
         }
 
-        parseElement(sb, currentElement, hSet);
+        const result = parseElement(sb, currentElement, hSet);
+
+        if(result) continue;
 
         const children = currentElement.children;
         for (let i = children.length - 1; i >= 0; i--) {
