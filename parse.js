@@ -257,7 +257,7 @@ ${code}
 
   function decodeVideoUrl(e, sb) {
     const src = e.getAttribute("src");
-    if(src === null) return;
+    if(src === null || !src.includes("youtube")) return;
 
     const encodeUrl = src
       .split("&")
