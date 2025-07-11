@@ -112,9 +112,7 @@ ${code}
   let publishTime = "";
   let orgUrl = "";
 
-  function parseElement(sb, e) {
-    const hSet = new Set();
-
+  function parseElement(sb, e, hSet) {
     const tagName = e.tagName.toLowerCase();
     switch (tagName) {
       case "div":
@@ -242,6 +240,8 @@ ${code}
         }
         break;
       case "iframe":
+        decodeVideoUrl(e, sb);
+
         const codes = getGistFormatCode(e);
 
         codes.forEach((code) => {
@@ -255,7 +255,28 @@ ${code}
     }
   }
 
+  function decodeVideoUrl(e, sb) {
+    const src = e.getAttribute("src");
+    if(src === null) return;
+
+    const encodeUrl = src
+      .split("&")
+      .filter((target) => {
+        return target.includes("url");
+      })
+      .map((url) => {
+        return url.split("=")[1];
+      });
+
+    const title = e.getAttribute("title");
+    const decodeUrl = decodeURIComponent(encodeUrl);
+    const alink = a(`video: ${title}`, decodeUrl);
+
+    sb.append(alink).br().br();
+  }
+
   const parseMedium = function () {
+    const hSet = new Set();
     const sb = new StringBuilder();
 
     // get the file name
@@ -287,12 +308,12 @@ ${code}
         const currentElement = stack.pop();
 
         const classAttrText = currentElement.getAttribute("class");
-        if(classAttrText?.includes("speechify-ignore")) {
+        if (classAttrText?.includes("speechify-ignore")) {
           // no parse this element
           continue;
         }
 
-        parseElement(sb, currentElement);
+        parseElement(sb, currentElement, hSet);
 
         const children = currentElement.children;
         for (let i = children.length - 1; i >= 0; i--) {
