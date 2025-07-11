@@ -188,24 +188,24 @@ ${code}
         break;
       case "blockquote":
         parseParagraph(sb, e.firstChild, e.textContent, "> ").br().br();
-        break;
+        return true;
       case "ol":
         [...e.children].forEach((li, index) => {
           const litext = li.textContent;
-          const mdliString = ol(index + 1, litext);
+          // const mdliString = ol(index + 1, litext);
           const firstItem = `${index + 1}. `;
-          parseParagraph(sb, li, mdliString, firstItem).br().br();
+          parseParagraph(sb, li, litext, firstItem).br().br();
         });
         return true;
       case "ul":
         [...e.children].forEach((liEl) => {
           const litext = liEl.textContent;
-          const mdliString = li(litext);
+          // const mdliString = li(litext);
           const firstItem = "- ";
-          parseParagraph(sb, liEl, mdliString, firstItem).br().br();
+          parseParagraph(sb, liEl, litext, firstItem).br().br();
         });
         return true;
-      case "picture":
+      case "figure":
         const imgElement = e.getElementsByTagName("img")[0];
         const imgUrl = imgElement?.getAttribute("src");
         if (imgUrl && imgUrl !== "") {
@@ -214,7 +214,7 @@ ${code}
 
           sb.append(e.textContent).br().br();
         }
-        return true;
+        return false;
       case "iframe":
         decodeVideoUrl(e, sb);
 
@@ -352,7 +352,11 @@ ${code}
   function parseParagraph(sb, e, c, firstItem = "") {
     const children = e.children;
     if (children.length === 0) {
-      return sb.append(replaceApostrophen(c));
+      let text = replaceApostrophen(c)
+      if(firstItem !== "") {
+        text = `${firstItem}${text}`;
+      }
+      return sb.append(text);
     }
 
     const patternOuterHtml = />(.*?)</g;
