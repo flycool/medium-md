@@ -114,6 +114,11 @@ ${code}
 
   // return value : true 表示此elelment不处理它的children
   function parseElement(sb, e) {
+    const classAttrText = e.getAttribute("class");
+    if (classAttrText?.includes("speechify-ignore")) {
+      return true;
+    }
+
     const tagName = e.tagName.toLowerCase();
     switch (tagName) {
       case "div":
@@ -166,43 +171,29 @@ ${code}
         sb.append(hthreeText).br().br();
         break;
       case "p":
-        const pe = e.firstElementChild;
-        // if (pe && pe.tagName.toLowerCase() === "button") {
-        //   return;
-        // }
-        // if (
-        //   e.parentElement.tagName.toLowerCase() === "blockquote" ||
-        //   hSet.has(e.textContent)
-        // ) {
-        //   return;
-        // }
-
-        parseParagraph(sb, e, e.textContent).br().br();
+        parseParagraph(sb, e).br().br();
         return true;
       case "span":
         const hasAttr = e.hasAttribute("data-selectable-paragraph");
         if (hasAttr) {
           const result = parseSpanCode(e.innerHTML);
           sb.append(formatCode(result)).br().br();
+          return true;
         }
         break;
       case "blockquote":
-        parseParagraph(sb, e.firstChild, e.textContent, "> ").br().br();
+        parseParagraph(sb, e.firstChild, "> ").br().br();
         return true;
       case "ol":
         [...e.children].forEach((li, index) => {
-          const litext = li.textContent;
-          // const mdliString = ol(index + 1, litext);
           const firstItem = `${index + 1}. `;
-          parseParagraph(sb, li, litext, firstItem).br().br();
+          parseParagraph(sb, li, firstItem).br().br();
         });
         return true;
       case "ul":
         [...e.children].forEach((liEl) => {
-          const litext = liEl.textContent;
-          // const mdliString = li(litext);
           const firstItem = "- ";
-          parseParagraph(sb, liEl, litext, firstItem).br().br();
+          parseParagraph(sb, liEl, firstItem).br().br();
         });
         return true;
       case "figure":
@@ -213,6 +204,7 @@ ${code}
           sb.append(imgText).br();
 
           sb.append(e.textContent).br().br();
+          return true;
         }
         return false;
       case "iframe":
@@ -284,12 +276,6 @@ ${code}
         count++;
         const currentElement = stack.pop();
 
-        const classAttrText = currentElement.getAttribute("class");
-        if (classAttrText?.includes("speechify-ignore")) {
-          // no parse this element
-          continue;
-        }
-
         const result = parseElement(sb, currentElement);
 
         if(result) continue;
@@ -349,15 +335,8 @@ ${code}
     }
   }
 
-  function parseParagraph(sb, e, c, firstItem = "") {
+  function parseParagraph(sb, e, firstItem = "") {
     const children = e.children;
-    if (children.length === 0) {
-      let text = replaceApostrophen(c)
-      if(firstItem !== "") {
-        text = `${firstItem}${text}`;
-      }
-      return sb.append(text);
-    }
 
     const patternOuterHtml = />(.*?)</g;
     const outerHTML = e.outerHTML;
