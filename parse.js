@@ -182,7 +182,12 @@ ${code}
         }
         break;
       case "blockquote":
-        parseParagraph(sb, e.firstChild, "> ").br().br();
+        const blockquoteChild = e.children;
+        if (blockquoteChild) {
+          [...blockquoteChild].forEach((bc) => {
+            parseParagraph(sb, bc, "> ").br().br();
+          });
+        }
         return true;
       case "ol":
         [...e.children].forEach((li, index) => {
@@ -225,7 +230,7 @@ ${code}
 
   function decodeVideoUrl(e, sb) {
     const src = e.getAttribute("src");
-    if(src === null || !src.includes("youtube")) return;
+    if (src === null || !src.includes("youtube")) return;
 
     const encodeUrl = src
       .split("&")
@@ -278,7 +283,7 @@ ${code}
 
         const result = parseElement(sb, currentElement);
 
-        if(result) continue;
+        if (result) continue;
 
         const children = currentElement.children;
         for (let i = children.length - 1; i >= 0; i--) {
@@ -329,10 +334,10 @@ ${code}
       const w = array[i];
       if (originalText === w) {
         array[i] = formatCode;
-        loopIndex = i;
-        break;
+        return i + 1;
       }
     }
+    return 0;
   }
 
   function parseParagraph(sb, e, firstItem = "") {
@@ -355,7 +360,7 @@ ${code}
 
     // console.log("orgWordArray:=", orgWordArray);
 
-    let loopIndex = -1;
+    let loopIndex = 0;
 
     for (child of children) {
       const tName = child.tagName.toLowerCase();
@@ -378,8 +383,8 @@ ${code}
           const alink = a(codeText, link);
           formatCode = alink;
         }
-
-        formatArray(loopIndex + 1, originalText, orgWordArray, formatCode);
+      
+        loopIndex = formatArray(loopIndex, originalText, orgWordArray, formatCode);
       } else if (tName === "strong") {
         const st = isStringBlank(originalText)
           ? originalText
@@ -394,13 +399,15 @@ ${code}
           formatCode = alink;
         }
 
-        formatArray(loopIndex + 1, originalText, orgWordArray, formatCode);
+        loopIndex = formatArray(loopIndex, originalText, orgWordArray, formatCode);
       } else if (tName === "a") {
         const link = child.getAttribute("href");
         const a1 = a(originalText, link);
         formatCode = a1;
 
-        formatArray(loopIndex + 1, originalText, orgWordArray, formatCode);
+        loopIndex = formatArray(loopIndex, originalText, orgWordArray, formatCode);
+      } else if (tName === "br") {
+        orgWordArray.splice(loopIndex + 1, 0, "\r\n");
       }
     }
 
