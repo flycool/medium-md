@@ -366,7 +366,7 @@ ${code}
         .filter((s) => s !== "");
     }
 
-    console.log("orgWordArray:=", orgWordArray);
+    // console.log("orgWordArray:=", orgWordArray);
 
     let loopIndex = 0;
 
@@ -436,7 +436,7 @@ ${code}
       return replaceApostrophen(s);
     });
 
-    console.log("orgWordArray2:=", orgWordArray);
+    // console.log("orgWordArray2:=", orgWordArray);
 
     sb.append(orgWordArray.join(""));
 
