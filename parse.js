@@ -173,6 +173,14 @@ ${code}
       case "p":
         parseParagraph(sb, e).br().br();
         return true;
+      case "code":
+        const lang = e.hasAttribute("lang");
+        if (lang) {
+          const result = parseSpanCode(e.innerHTML);
+          sb.append(formatCode(result)).br().br();
+          return true;
+        }
+        break;
       case "span":
         const hasAttr = e.hasAttribute("data-selectable-paragraph");
         if (hasAttr) {
@@ -270,12 +278,12 @@ ${code}
       }
     }
 
-    const section = document.getElementsByTagName("section")[0];
+    const article = document.getElementsByTagName("article")[0];
 
     // deep first search
-    if (section) {
+    if (article) {
       const stack = [];
-      stack.push(section);
+      stack.push(article);
       let count = 0;
       while (stack.length > 0) {
         count++;
@@ -358,7 +366,7 @@ ${code}
         .filter((s) => s !== "");
     }
 
-    // console.log("orgWordArray:=", orgWordArray);
+    console.log("orgWordArray:=", orgWordArray);
 
     let loopIndex = 0;
 
@@ -386,11 +394,20 @@ ${code}
       
         loopIndex = formatArray(loopIndex, originalText, orgWordArray, formatCode);
       } else if (tName === "strong") {
-        const st = isStringBlank(originalText)
-          ? originalText
-          : bold(originalText.trim());
-        const strongText = formatHasBlankText(originalText, st);
+        let restText = originalText;
+        const strongText = handleStrongBlankText(originalText);
         formatCode = strongText;
+
+        const emTag = child.getElementsByTagName("em")[0];
+        if(emTag !== undefined) {
+          const emText = emTag.textContent;
+          const emStrongText = handleStrongBlankText(emText);
+          formatCode = italic(emStrongText);
+          loopIndex = formatArray(loopIndex, emText, orgWordArray, formatCode);
+
+          restText = originalText.substring(emText.length);
+          formatCode = handleStrongBlankText(restText);
+        }
 
         const atag = child.getElementsByTagName("a")[0];
         if (atag !== undefined) {
@@ -399,7 +416,7 @@ ${code}
           formatCode = alink;
         }
 
-        loopIndex = formatArray(loopIndex, originalText, orgWordArray, formatCode);
+        loopIndex = formatArray(loopIndex, restText, orgWordArray, formatCode);
       } else if (tName === "a") {
         const link = child.getAttribute("href");
         const a1 = a(originalText, link);
@@ -418,6 +435,8 @@ ${code}
     orgWordArray = orgWordArray.map((s) => {
       return replaceApostrophen(s);
     });
+
+    console.log("orgWordArray2:=", orgWordArray);
 
     sb.append(orgWordArray.join(""));
 
@@ -458,6 +477,13 @@ ${code}
       }
     }
     return codeArray;
+  }
+
+  function handleStrongBlankText(text) {
+    const st = isStringBlank(text)
+          ? text
+          : bold(text.trim());
+    return formatHasBlankText(text, st);
   }
 
   // 将 ‘（中文）改成 '(英文的)
