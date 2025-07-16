@@ -416,7 +416,9 @@ ${code}
           formatCode = alink;
         }
 
-        loopIndex = formatArray(loopIndex, restText, orgWordArray, formatCode);
+        if(restText !== "") {
+          loopIndex = formatArray(loopIndex, restText, orgWordArray, formatCode);
+        }
       } else if (tName === "a") {
         const link = child.getAttribute("href");
         const a1 = a(originalText, link);
