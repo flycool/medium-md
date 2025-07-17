@@ -156,19 +156,13 @@ ${code}
         }
         break;
       case "h1":
-        const hone = h1(e.textContent);
-        const honeText = replaceApostrophen(hone);
-        sb.append(honeText).br().br();
+        parseParagraph(sb, e, "# ").br().br();
         break;
       case "h2":
-        const htwo = h2(e.textContent);
-        const htwoText = replaceApostrophen(htwo);
-        sb.append(htwoText).br().br();
+        parseParagraph(sb, e, "## ").br().br();
         break;
       case "h3":
-        const hthree = h3(e.textContent);
-        const hthreeText = replaceApostrophen(hthree);
-        sb.append(hthreeText).br().br();
+        parseParagraph(sb, e, "### ").br().br();
         break;
       case "p":
         parseParagraph(sb, e).br().br();
@@ -403,7 +397,7 @@ ${code}
         const brTag = child.getElementsByTagName("br")[0];
         if(brTag !== undefined) {
           // loop up the first text loopIndex
-          for (let i = 0; i < orgWordArray.length; i++) {
+          for (let i = loopIndex; i < orgWordArray.length; i++) {
             const w = orgWordArray[i];
             if(originalText.includes(w)) {
               loopIndex = i;
