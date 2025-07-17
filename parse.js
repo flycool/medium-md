@@ -361,7 +361,8 @@ ${code}
       orgWordArray = orgWordArray
         .map((s) => {
           const i = s.lastIndexOf(">");
-          return s.slice(i + 1, -1);
+          const unescape = s.slice(i + 1, -1);
+          return unescapeHTML(unescape);
         })
         .filter((s) => s !== "");
     }
@@ -397,6 +398,32 @@ ${code}
         let restText = originalText;
         const strongText = handleStrongBlankText(originalText);
         formatCode = strongText;
+        
+        // todo: may be more than one br tag in strong tag
+        const brTag = child.getElementsByTagName("br")[0];
+        if(brTag !== undefined) {
+          // loop up the first text loopIndex
+          for (let i = 0; i < orgWordArray.length; i++) {
+            const w = orgWordArray[i];
+            if(originalText.includes(w)) {
+              loopIndex = i;
+              break;
+            }
+          }
+          
+          const sInArray = orgWordArray[loopIndex]
+          const s1 = originalText.substring(0, sInArray.length);
+          formatCode = handleStrongBlankText(s1);
+          loopIndex = formatArray(loopIndex, s1, orgWordArray, formatCode);
+
+          // loopIndex return from formatArray, already plus one 
+          orgWordArray.splice(loopIndex, 0, "\r\n");
+          
+          restText = originalText.substring(sInArray.length);
+          if(restText !== "") {
+            formatCode = handleStrongBlankText(restText);
+          }
+        }
 
         const emTag = child.getElementsByTagName("em")[0];
         if(emTag !== undefined) {
