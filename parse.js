@@ -446,8 +446,14 @@ ${code}
         formatCode = a1;
 
         loopIndex = formatArray(loopIndex, originalText, orgWordArray, formatCode);
+      } else if(tName === "em") {
+        let emText = originalText;
+        formatCode = italic(emText);
+
+        loopIndex = formatArray(loopIndex, emText, orgWordArray, formatCode);
+
       } else if (tName === "br") {
-        orgWordArray.splice(loopIndex + 1, 0, "\r\n");
+        orgWordArray.splice(loopIndex, 0, "\r\n");
       }
     }
 
