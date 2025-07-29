@@ -205,12 +205,16 @@ ${code}
         return true;
       case "figure":
         const imgElement = e.getElementsByTagName("img")[0];
+        const figcaptionElement = e.getElementsByTagName("figcaption")[0];
         const imgUrl = imgElement?.getAttribute("src");
         if (imgUrl && imgUrl !== "") {
           const imgText = img("", imgUrl);
           sb.append(imgText).br();
 
-          sb.append(e.textContent).br().br();
+          if(figcaptionElement) {
+            sb.append(figcaptionElement.textContent);
+          }
+          sb.br().br();
           return true;
         }
         return false;
