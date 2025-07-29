@@ -361,10 +361,9 @@ ${code}
         let tagArray = formatHtmlToArray(brHtml, patternOuterHtml);
 
         tagArray.push("\r\n");
-        orgWordArray.push(tagArray);
+        orgWordArray.push(...tagArray);
       }
 
-      orgWordArray = orgWordArray.flat();
       orgWordArray.pop(); // remove the last br
     } else {
       orgWordArray = formatHtmlToArray(outerHTML, patternOuterHtml);
