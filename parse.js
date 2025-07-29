@@ -344,17 +344,6 @@ ${code}
     return trimStr.length === 1 && !isAlphanumberic(trimStr);
   }
 
-  function formatArray(index, originalText, array, formatCode) {
-    for (let i = index; i < array.length; i++) {
-      const w = array[i];
-      if (originalText === w) {
-        array[i] = formatCode;
-        return i + 1;
-      }
-    }
-    return 0;
-  }
-
   function parseParagraph(sb, e, firstItem = "") {
     const children = e.children;
 
@@ -368,26 +357,17 @@ ${code}
 
     if (brArray.length > 1) {
       for (let tag of brArray) {
-        let tagHtml = ">" + tag + "<"; // to fit patternOuterHtml
-        let tagArray = Array.from(
-          tagHtml.matchAll(patternOuterHtml),
-          (m) => m[1]
-        ).map((s) => {
-          return unescapeHTML(s);
-        });
+        let brHtml = ">" + tag + "<"; // to fit patternOuterHtml
+        let tagArray = formatHtmlToArray(brHtml, patternOuterHtml);
 
         tagArray.push("\r\n");
         orgWordArray.push(tagArray);
       }
+
       orgWordArray = orgWordArray.flat();
       orgWordArray.pop(); // remove the last br
     } else {
-      orgWordArray = Array.from(
-        outerHTML.matchAll(patternOuterHtml),
-        (m) => m[1]
-      ).map((s) => {
-        return unescapeHTML(s);
-      });
+      orgWordArray = formatHtmlToArray(outerHTML, patternOuterHtml);
     }
 
     // console.log("orgWordArray:=", orgWordArray);
@@ -477,6 +457,26 @@ ${code}
     return sb;
   }
 
+  function formatArray(index, originalText, array, formatCode) {
+    for (let i = index; i < array.length; i++) {
+      const w = array[i];
+      if (originalText === w) {
+        array[i] = formatCode;
+        return i + 1;
+      }
+    }
+    return 0;
+  }
+
+  function formatHtmlToArray(html, pattern) {
+    return Array.from(
+      html.matchAll(pattern),
+      (m) => m[1]
+    ).map((s) => {
+      return unescapeHTML(s);
+    });
+  }
+
   // get gist code from iframe
   function getGistFormatCode(e) {
     let iframdom;
@@ -518,7 +518,7 @@ ${code}
     return formatHasBlankText(text, st);
   }
 
-  // 将 ‘（中文）改成 '(英文的)
+  // 将 ’（中文）改成 '(英文的)
   function replaceApostrophen(content) {
     return content.replace(/’/g, "'");
   }
