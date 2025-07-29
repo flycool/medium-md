@@ -331,6 +331,15 @@ ${code}
     return !isNaN(parseFloat(value)) && !isNaN(value);
   }
 
+  function isAlphanumberic(str) {
+    return /^[a-zA-Z0-9]+$/.test(str);
+  }
+
+  function checkIsNotation(str) {
+    let trimStr = str.trim();
+    return (trimStr.length === 1) && !isAlphanumberic(trimStr);
+  }
+
   function formatArray(index, originalText, array, formatCode) {
     for (let i = index; i < array.length; i++) {
       const w = array[i];
@@ -390,8 +399,14 @@ ${code}
         loopIndex = formatArray(loopIndex, originalText, orgWordArray, formatCode);
       } else if (tName === "strong") {
         let restText = originalText;
-        const strongText = handleStrongBlankText(originalText);
-        formatCode = strongText;
+        let isNotation = checkIsNotation(restText);
+        
+        if(!isNotation) {
+          const strongText = handleStrongBlankText(originalText);
+          formatCode = strongText;
+        } else {
+          formatCode = restText;
+        }
         
         // todo: may be more than one br tag in strong tag
         const brTag = child.getElementsByTagName("br")[0];
@@ -419,17 +434,6 @@ ${code}
           }
         }
 
-        const emTag = child.getElementsByTagName("em")[0];
-        if(emTag !== undefined) {
-          const emText = emTag.textContent;
-          const emStrongText = handleStrongBlankText(emText);
-          formatCode = italic(emStrongText);
-          loopIndex = formatArray(loopIndex, emText, orgWordArray, formatCode);
-
-          restText = originalText.substring(emText.length);
-          formatCode = handleStrongBlankText(restText);
-        }
-
         const atag = child.getElementsByTagName("a")[0];
         if (atag !== undefined) {
           const link = atag.getAttribute("href");
@@ -446,12 +450,6 @@ ${code}
         formatCode = a1;
 
         loopIndex = formatArray(loopIndex, originalText, orgWordArray, formatCode);
-      } else if(tName === "em") {
-        let emText = originalText;
-        formatCode = italic(emText);
-
-        loopIndex = formatArray(loopIndex, emText, orgWordArray, formatCode);
-
       } else if (tName === "br") {
         orgWordArray.splice(loopIndex, 0, "\r\n");
       }
