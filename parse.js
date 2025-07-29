@@ -358,7 +358,7 @@ ${code}
   function parseParagraph(sb, e, firstItem = "") {
     const children = e.children;
 
-    const patternOuterHtml = />(.*?)</g;
+    const patternOuterHtml = />([^<]+)</g; // 排除 >< 空字符
 
     const outerHTML = e.outerHTML;
     // console.log("outerhtml==", outerHTML);
@@ -369,31 +369,25 @@ ${code}
     if (brArray.length > 1) {
       for (let tag of brArray) {
         let tagHtml = ">" + tag + "<"; // to fit patternOuterHtml
-        let tagArray = tagHtml.match(patternOuterHtml);
-
-        tagArray = tagArray
-          .map((s) => {
-            const i = s.lastIndexOf(">");
-            const unescape = s.slice(i + 1, -1);
-            return unescapeHTML(unescape);
-          })
-          .filter((s) => s.trim() !== "");
+        let tagArray = Array.from(
+          tagHtml.matchAll(patternOuterHtml),
+          (m) => m[1]
+        ).map((s) => {
+          return unescapeHTML(s);
+        });
 
         tagArray.push("\r\n");
-
         orgWordArray.push(tagArray);
       }
       orgWordArray = orgWordArray.flat();
       orgWordArray.pop(); // remove the last br
     } else {
-      orgWordArray = outerHTML.match(patternOuterHtml);
-      orgWordArray = orgWordArray
-          .map((s) => {
-            const i = s.lastIndexOf(">");
-            const unescape = s.slice(i + 1, -1);
-            return unescapeHTML(unescape);
-          })
-          .filter((s) => s.trim() !== "");
+      orgWordArray = Array.from(
+        outerHTML.matchAll(patternOuterHtml),
+        (m) => m[1]
+      ).map((s) => {
+        return unescapeHTML(s);
+      });
     }
 
     // console.log("orgWordArray:=", orgWordArray);
