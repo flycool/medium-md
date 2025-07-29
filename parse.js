@@ -211,7 +211,7 @@ ${code}
           const imgText = img("", imgUrl);
           sb.append(imgText).br();
 
-          if(figcaptionElement) {
+          if (figcaptionElement) {
             sb.append(figcaptionElement.textContent);
           }
           sb.br().br();
@@ -341,7 +341,7 @@ ${code}
 
   function checkIsNotation(str) {
     let trimStr = str.trim();
-    return (trimStr.length === 1) && !isAlphanumberic(trimStr);
+    return trimStr.length === 1 && !isAlphanumberic(trimStr);
   }
 
   function formatArray(index, originalText, array, formatCode) {
@@ -359,19 +359,41 @@ ${code}
     const children = e.children;
 
     const patternOuterHtml = />(.*?)</g;
+
     const outerHTML = e.outerHTML;
     // console.log("outerhtml==", outerHTML);
 
-    let orgWordArray = outerHTML.match(patternOuterHtml);
+    let orgWordArray = [];
+    let brArray = outerHTML.split("<br>");
 
-    if (orgWordArray !== null) {
+    if (brArray.length > 1) {
+      for (let tag of brArray) {
+        let tagHtml = ">" + tag + "<"; // to fit patternOuterHtml
+        let tagArray = tagHtml.match(patternOuterHtml);
+
+        tagArray = tagArray
+          .map((s) => {
+            const i = s.lastIndexOf(">");
+            const unescape = s.slice(i + 1, -1);
+            return unescapeHTML(unescape);
+          })
+          .filter((s) => s.trim() !== "");
+
+        tagArray.push("\r\n");
+
+        orgWordArray.push(tagArray);
+      }
+      orgWordArray = orgWordArray.flat();
+      orgWordArray.pop(); // remove the last br
+    } else {
+      orgWordArray = outerHTML.match(patternOuterHtml);
       orgWordArray = orgWordArray
-        .map((s) => {
-          const i = s.lastIndexOf(">");
-          const unescape = s.slice(i + 1, -1);
-          return unescapeHTML(unescape);
-        })
-        .filter((s) => s !== "");
+          .map((s) => {
+            const i = s.lastIndexOf(">");
+            const unescape = s.slice(i + 1, -1);
+            return unescapeHTML(unescape);
+          })
+          .filter((s) => s.trim() !== "");
     }
 
     // console.log("orgWordArray:=", orgWordArray);
@@ -399,43 +421,22 @@ ${code}
           const alink = a(codeText, link);
           formatCode = alink;
         }
-      
-        loopIndex = formatArray(loopIndex, originalText, orgWordArray, formatCode);
+
+        loopIndex = formatArray(
+          loopIndex,
+          originalText,
+          orgWordArray,
+          formatCode
+        );
       } else if (tName === "strong") {
         let restText = originalText;
         let isNotation = checkIsNotation(restText);
-        
-        if(!isNotation) {
+
+        if (!isNotation) {
           const strongText = handleStrongBlankText(originalText);
           formatCode = strongText;
         } else {
           formatCode = restText;
-        }
-        
-        // todo: may be more than one br tag in strong tag
-        const brTag = child.getElementsByTagName("br")[0];
-        if(brTag !== undefined) {
-          // loop up the first text loopIndex
-          for (let i = loopIndex; i < orgWordArray.length; i++) {
-            const w = orgWordArray[i];
-            if(originalText.includes(w)) {
-              loopIndex = i;
-              break;
-            }
-          }
-          
-          const sInArray = orgWordArray[loopIndex]
-          const s1 = originalText.substring(0, sInArray.length);
-          formatCode = handleStrongBlankText(s1);
-          loopIndex = formatArray(loopIndex, s1, orgWordArray, formatCode);
-
-          // loopIndex return from formatArray, already plus one 
-          orgWordArray.splice(loopIndex, 0, "\r\n");
-          
-          restText = originalText.substring(sInArray.length);
-          if(restText !== "") {
-            formatCode = handleStrongBlankText(restText);
-          }
         }
 
         const atag = child.getElementsByTagName("a")[0];
@@ -445,17 +446,25 @@ ${code}
           formatCode = alink;
         }
 
-        if(restText !== "") {
-          loopIndex = formatArray(loopIndex, restText, orgWordArray, formatCode);
+        if (restText !== "") {
+          loopIndex = formatArray(
+            loopIndex,
+            restText,
+            orgWordArray,
+            formatCode
+          );
         }
       } else if (tName === "a") {
         const link = child.getAttribute("href");
         const a1 = a(originalText, link);
         formatCode = a1;
 
-        loopIndex = formatArray(loopIndex, originalText, orgWordArray, formatCode);
-      } else if (tName === "br") {
-        orgWordArray.splice(loopIndex, 0, "\r\n");
+        loopIndex = formatArray(
+          loopIndex,
+          originalText,
+          orgWordArray,
+          formatCode
+        );
       }
     }
 
@@ -511,9 +520,7 @@ ${code}
   }
 
   function handleStrongBlankText(text) {
-    const st = isStringBlank(text)
-          ? text
-          : bold(text.trim());
+    const st = isStringBlank(text) ? text : bold(text.trim());
     return formatHasBlankText(text, st);
   }
 
