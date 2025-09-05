@@ -22,7 +22,7 @@ export class ParseUtils {
       case "div":
         const attr = e.getAttribute("role");
         if (attr === "separator") {
-          sb.append(separator()).br().br();
+          sb.append(markdown.separator()).br().br();
           return true;
         }
 
