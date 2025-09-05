@@ -5,6 +5,10 @@
   "version": "1.0",
   "action": {},
   "permissions": ["activeTab", "scripting"],
+  "web_accessible_resources": [{
+    "resources": ["modules/*.js"],
+    "matches": ["<all_urls>"]
+  }],
   "background": {
     "service_worker": "background.js",
     "type": "module"
