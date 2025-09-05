@@ -33,10 +33,11 @@ export class MarkdownUtils {
     return `- ${text}`;
   }
 
+  // don't format this code 
   static formatCode(code, format = "kotlin") {
-    return `\`\`\`${format}
-    ${code}
-    \`\`\``;
+  return `\`\`\`${format}
+${code}
+\`\`\``;
   }
 
   static separator() {
