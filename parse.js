@@ -4,6 +4,9 @@
     let publishTime = "";
     let orgUrl = "";
 
+    const { DomUtils } = await import(
+      chrome.runtime.getURL("/modules/DomUtils.js")
+    );
     const { ParseUtils } = await import(
       chrome.runtime.getURL("/modules/ParseUtils.js")
     );
@@ -35,26 +38,33 @@
 
       const article = document.getElementsByTagName("article")[0];
 
-      // deep first search
-      if (article) {
-        const stack = [];
-        stack.push(article);
-        let count = 0;
-        while (stack.length > 0) {
-          count++;
-          const currentElement = stack.pop();
 
-          const result = await ParseUtils.parseElement(sb, currentElement);
-
-          if (result) continue;
-
-          const children = currentElement.children;
-          for (let i = children.length - 1; i >= 0; i--) {
-            stack.push(children[i]);
-          }
+      await DomUtils.deepSearchForElement(
+        article,
+        async (currentElement) => {
+          return await ParseUtils.parseElement(sb, currentElement);
         }
-        // console.log("count==", count);
-      }
+      );
+
+      // deep first search
+      // if (article) {
+      //   const stack = [];
+      //   stack.push(article);
+      //   let count = 0;
+      //   while (stack.length > 0) {
+      //     count++;
+      //     const currentElement = stack.pop();
+
+      //     const result = await ParseUtils.parseElement(sb, currentElement);
+
+      //     if (result) continue;
+
+      //     const children = currentElement.children;
+      //     for (let i = children.length - 1; i >= 0; i--) {
+      //       stack.push(children[i]);
+      //     }
+      //   }
+      // }
 
       // console.log("sb==== ", sb.toString());
 

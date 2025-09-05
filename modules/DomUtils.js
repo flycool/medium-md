@@ -1,6 +1,27 @@
 // DomUtils.js
 export class DomUtils {
-  
+
+  static async deepSearchForElement(element, parseFunc) {
+    if (element) {
+      const stack = [];
+      stack.push(element);
+      let count = 0;
+      while (stack.length > 0) {
+        count++;
+        const currentElement = stack.pop();
+
+        const result = await parseFunc(currentElement);
+
+        if (result) continue;
+
+        const children = currentElement.children;
+        for (let i = children.length - 1; i >= 0; i--) {
+          stack.push(children[i]);
+        }
+      }
+    }
+  }
+
   static extractMainContent() {
     // 尝试获取主要内容区域
     const selectors = [
