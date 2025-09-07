@@ -7,6 +7,7 @@ const proandroiddev = "proandroiddev.com";
 const medium = "medium.com";
 const victorbrandalise = "victorbrandalise.com";
 const bilibili = "bilibili.com"
+const androidDevelopers = "android-developers";
 
 chrome.action.onClicked.addListener(async (tab) => {
   if (tab.url.includes(proandroiddev) || tab.url.includes(medium) || tab.url.includes(victorbrandalise)) {
@@ -18,6 +19,11 @@ chrome.action.onClicked.addListener(async (tab) => {
     chrome.scripting.executeScript({
       target: { tabId: tab.id },
       files: ["note.js"], // for bilibili notes
+    });
+  } else if (tab.url.includes(androidDevelopers)) {
+    chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      files: ["androidDevelopers.js"],
     });
   }
 });

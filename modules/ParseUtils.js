@@ -41,7 +41,7 @@ export class ParseUtils {
           const h2Text = h2e?.textContent;
 
           let link = aChild.getAttribute("href");
-          if (link.includes("post_audio_button")) {
+          if (link && link.includes("post_audio_button")) {
             return false;
           }
           // if (!link.startsWith("https://") || !link.startsWith("http://")) {
@@ -61,6 +61,9 @@ export class ParseUtils {
         break;
       case "h3":
         this.parseParagraph(sb, e, "### ", markdown).br().br();
+        break;
+      case "h4":
+        this.parseParagraph(sb, e, "#### ", markdown).br().br();
         break;
       case "p":
         const ptex = e?.textContent;
@@ -84,6 +87,10 @@ export class ParseUtils {
           return true;
         }
         break;
+      case "pre":
+        const result = await this.parseSpanCode(e.innerHTML);
+        sb.append(markdown.formatCode(result)).br().br();
+        return true;
       case "blockquote":
         const blockquoteChild = e.children;
         if (blockquoteChild) {
@@ -106,13 +113,14 @@ export class ParseUtils {
         return true;
       case "img":
         let imglink = e?.getAttribute("src");
-        if (!imglink.includes("https")) {
-          imglink = "https:" + imglink;
+        if(imglink) {
+          if (!imglink.includes("https")) {
+            imglink = "https:" + imglink;
+          }
+          const imgText = markdown.img("", imglink);
+          sb.append(imgText).br();
+          sb.br().br();
         }
-        const imgText = markdown.img("", imglink);
-        sb.append(imgText).br();
-
-        sb.br().br();
         return true;
       case "figure":
         const imgElement = e.getElementsByTagName("img")[0];
@@ -178,7 +186,7 @@ export class ParseUtils {
       const originalText = child.textContent;
       let formatCode = originalText;
 
-      if (tName === "code") {
+      if (tName === "code" || tName === "span") {
         const codeText = markdown.code(originalText);
         formatCode = codeText;
 
@@ -204,10 +212,10 @@ export class ParseUtils {
           orgWordArray,
           formatCode
         );
-      } else if (tName === "strong") {
+      } else if (tName === "strong" || tName === "b") {
         let restText = originalText;
         let isNotation = this.checkIsNotation(restText);
-
+        
         if (!isNotation) {
           const strongText = this.handleStrongBlankText(originalText, markdown);
           formatCode = strongText;
@@ -375,7 +383,11 @@ export class ParseUtils {
 
   static checkIsNotation(str) {
     let trimStr = str.trim();
-    return trimStr.length === 1 && !isAlphanumberic(trimStr);
+    return trimStr.length === 1 && !this.isAlphanumberic(trimStr);
+  }
+
+  static isAlphanumberic(str) {
+    return /^[a-zA-Z0-9]+$/.test(str);
   }
 
   static isStringBlank(str) {

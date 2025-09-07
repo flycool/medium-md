@@ -16,7 +16,7 @@
     let publishTime = "";
     let orgUrl = "";
 
-    const parseMedium = async function () {
+    async function parseNote() {
       // get the file name
       const metaTags = document.getElementsByTagName("meta");
       for (meta of metaTags) {
@@ -36,20 +36,26 @@
         }
       }
 
-      const article = document.getElementsByTagName("article")[0];
+      const content = document.getElementsByClassName("content-wrap")[0];
 
-
-      await DomUtils.deepSearchForElement(
-        article,
-        async (currentElement) => {
-          return await ParseUtils.parseElement(sb, currentElement);
+      await DomUtils.deepSearchForElement(content, async (currentElement) => {
+        // ignore these tag
+        const classAttrText = currentElement.getAttribute("class");
+        if (
+          classAttrText?.includes("icon-sidebar") ||
+          classAttrText?.includes("blog-label-container") ||
+          classAttrText?.includes("blog-pager pagination")
+        ) {
+          return true;
         }
-      );
+
+        return await ParseUtils.parseElement(sb, currentElement);
+      });
 
       return sb.toString();
-    };
+    }
 
-    NetworkUtils.downloadFile(await parseMedium(), fileName);
+    NetworkUtils.downloadFile(await parseNote(), fileName);
   } catch (error) {
     console.error("解析失败:", error);
   }
