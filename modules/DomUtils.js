@@ -25,6 +25,10 @@ export class DomUtils {
     const classAttrText = e.getAttribute("class");
     if (!classAttrText) return false;
 
+    if(tags.length === 1 &&  classAttrText.includes(tags)) {
+        return true;
+    }
+
     // 预处理：创建正则表达式（只执行一次）
     const regex = new RegExp(
       `\\b(?:${tags.map((tag) => this.escapeRegExp(tag)).join("|")})\\b`
