@@ -39,15 +39,12 @@
       const content = document.getElementsByClassName("content-wrap")[0];
 
       await DomUtils.deepSearchForElement(content, async (currentElement) => {
-        // ignore these tag
-        const classAttrText = currentElement.getAttribute("class");
-        if (
-          classAttrText?.includes("icon-sidebar") ||
-          classAttrText?.includes("blog-label-container") ||
-          classAttrText?.includes("blog-pager pagination")
-        ) {
-          return true;
-        }
+        const isIgnore = DomUtils.ignoreTags(currentElement, 
+          "icon-sidebar", 
+          "blog-label-container",
+          "blog-pager pagination"
+        )
+        if(isIgnore) return true;
 
         return await ParseUtils.parseElement(sb, currentElement);
       });

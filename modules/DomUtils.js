@@ -1,6 +1,5 @@
 // DomUtils.js
 export class DomUtils {
-
   static async deepSearchForElement(element, parseFunc) {
     if (element) {
       const stack = [];
@@ -20,6 +19,22 @@ export class DomUtils {
         }
       }
     }
+  }
+
+  static ignoreTags(e, ...tags) {
+    const classAttrText = e.getAttribute("class");
+    if (!classAttrText) return false;
+
+    // 预处理：创建正则表达式（只执行一次）
+    const regex = new RegExp(
+      `\\b(?:${tags.map((tag) => this.escapeRegExp(tag)).join("|")})\\b`
+    );
+    return regex.test(classAttrText);
+  }
+
+  // 辅助函数：转义正则特殊字符
+  static escapeRegExp(string) {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   }
 
   static extractMainContent() {
