@@ -21,18 +21,16 @@ export class DomUtils {
     }
   }
 
-  static ignoreTags(e, ...tags) {
-    const classAttrText = e.getAttribute("class");
-    if (!classAttrText) return false;
-
-    if(tags.length === 1 &&  classAttrText.includes(tags)) {
-        return true;
-    }
-
-    // 预处理：创建正则表达式（只执行一次）
+  static regexTags(...tags) {
     const regex = new RegExp(
       `\\b(?:${tags.map((tag) => this.escapeRegExp(tag)).join("|")})\\b`
     );
+    return regex;
+  }
+
+  static ignoreTags(e, regex) {
+    const classAttrText = e.getAttribute("class");
+    if (!classAttrText) return false;
     return regex.test(classAttrText);
   }
 

@@ -12,10 +12,10 @@ export class ParseUtils {
     // 直接使用已初始化的模块（如果还在加载中会等待）
     const markdown = await this.markdown;
 
-    const classAttrText = e.getAttribute("class");
-    if (classAttrText?.includes("speechify-ignore")) {
-      return true;
-    }
+    // const classAttrText = e.getAttribute("class");
+    // if (classAttrText?.includes("speechify-ignore")) {
+    //   return true;
+    // }
 
     const tagName = e.tagName.toLowerCase();
     switch (tagName) {

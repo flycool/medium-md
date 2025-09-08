@@ -38,13 +38,15 @@
 
       const content = document.getElementsByClassName("content-wrap")[0];
 
+      const regex = DomUtils.regexTags(
+        "icon-sidebar",
+        "blog-label-container",
+        "blog-pager pagination"
+      );
+
       await DomUtils.deepSearchForElement(content, async (currentElement) => {
-        const isIgnore = DomUtils.ignoreTags(currentElement, 
-          "icon-sidebar", 
-          "blog-label-container",
-          "blog-pager pagination"
-        )
-        if(isIgnore) return true;
+        const isIgnore = DomUtils.ignoreTags(currentElement, regex);
+        if (isIgnore) return true;
 
         return await ParseUtils.parseElement(sb, currentElement);
       });

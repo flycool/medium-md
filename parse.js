@@ -38,13 +38,14 @@
 
       const article = document.getElementsByTagName("article")[0];
 
+      const regex = DomUtils.regexTags("speechify-ignore");
 
-      await DomUtils.deepSearchForElement(
-        article,
-        async (currentElement) => {
-          return await ParseUtils.parseElement(sb, currentElement);
-        }
-      );
+      await DomUtils.deepSearchForElement(article, async (currentElement) => {
+        const isIgnore = DomUtils.ignoreTags(currentElement, regex);
+        if (isIgnore) return true;
+        
+        return await ParseUtils.parseElement(sb, currentElement);
+      });
 
       return sb.toString();
     };
