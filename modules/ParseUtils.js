@@ -106,9 +106,30 @@ export class ParseUtils {
         });
         return true;
       case "ul":
-        [...e.children].forEach((liEl) => {
-          const firstItem = "- ";
-          this.parseParagraph(sb, liEl, firstItem, markdown).br().br();
+        if(e.firstElementChild?.tagName.toLowerCase() === "ul") {
+          // don't handle the first ul element if exist
+          return false;
+        }
+        [...e.children].forEach((el) => {
+          const elTagName = el.tagName.toLowerCase();
+          let firstItem = "";
+          if(elTagName === "li") {
+            firstItem = "- ";
+            this.parseParagraph(sb, el, firstItem, markdown).br().br();
+          } else if (elTagName === "div") {
+            const imgEl = el.firstElementChild;
+            if(imgEl) {
+              const firsTagName = imgEl.tagName.toLowerCase()
+              if(firsTagName === "img") {
+                const inImgLink = imgEl.getAttribute("src");
+                const imgText = markdown.img("", inImgLink);
+                sb.append(imgText).br();
+              }
+            }
+          } else if (elTagName === "imgcaption") {
+            const imgdes = el.textContent;
+            sb.append(imgdes).br().br();
+          }
         });
         return true;
       case "img":
@@ -225,9 +246,12 @@ export class ParseUtils {
 
         const atag = child.getElementsByTagName("a")[0];
         if (atag !== undefined) {
+          const aText = atag.textContent;
+          const aStrongText = markdown.bold(aText);
           const link = atag.getAttribute("href");
-          const alink = markdown.a(strongText, link);
+          const alink = markdown.a(aStrongText, link);
           formatCode = alink;
+          restText = aText;
         }
 
         if (restText !== "") {
