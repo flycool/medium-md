@@ -159,7 +159,7 @@ export class ParseUtils {
         }
         return false;
       case "iframe":
-        this.decodeVideoUrl(e, sb);
+        this.decodeVideoUrl(e, sb, markdown);
 
         const codes = await this.getGistFormatCode(e);
 
@@ -368,7 +368,7 @@ export class ParseUtils {
     return result;
   }
 
-  static decodeVideoUrl(e, sb) {
+  static decodeVideoUrl(e, sb, markdown) {
     const src = e.getAttribute("src");
     if (src === null || !src.includes("youtube")) return;
 
@@ -383,7 +383,7 @@ export class ParseUtils {
 
     const title = e.getAttribute("title");
     const decodeUrl = decodeURIComponent(encodeUrl);
-    const alink = a(`video: ${title}`, decodeUrl);
+    const alink = markdown.a(`video: ${title}`, decodeUrl);
 
     sb.append(alink).br().br();
   }
