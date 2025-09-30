@@ -95,7 +95,7 @@ export class ParseUtils {
         const blockquoteChild = e.children;
         if (blockquoteChild) {
           [...blockquoteChild].forEach((bc) => {
-            this.parseParagraph(sb, bc, "> ", markdown).br().br();
+            this.parseParagraph(sb, bc, "> [!note]\n", markdown).br().br();
           });
         }
         return true;
