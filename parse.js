@@ -16,6 +16,8 @@
     let publishTime = "";
     let orgUrl = "";
     const memberUrl = "https://medium.com/plans";
+    let isTagIgnored = false;
+    let isMemberLinkSkipped = false;
 
     const parseMedium = async function () {
       // get the file name
@@ -43,13 +45,17 @@
 
       // 深度搜索文章内容，解析文本并忽略特定标签
       await DomUtils.deepSearchForElement(article, async (currentElement) => {
-        const isIgnore = DomUtils.ignoreTags(currentElement, regex);
-        if (isIgnore) return true;
-        if (
-          currentElement.tagName.toLowerCase() === "a" &&
-          currentElement.getAttribute("href").includes(memberUrl)
-        ) {
+        if (!isTagIgnored && DomUtils.ignoreTags(currentElement, regex)) {
+          isTagIgnored = true;
           return true;
+        }
+
+        if (!isMemberLinkSkipped && currentElement.tagName.toLowerCase() === "a") {
+          const href = currentElement.getAttribute("href");
+          if (href && href.includes(memberUrl)) {
+            isMemberLinkSkipped = true;
+            return true;
+          }
         }
 
         return await ParseUtils.parseElement(sb, currentElement);

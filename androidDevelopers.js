@@ -41,12 +41,13 @@
       const regex = DomUtils.regexTags(
         "icon-sidebar",
         "blog-label-container",
-        "blog-pager pagination"
+        "blog-pager pagination",
       );
 
       await DomUtils.deepSearchForElement(content, async (currentElement) => {
-        const isIgnore = DomUtils.ignoreTags(currentElement, regex);
-        if (isIgnore) return true;
+        if (DomUtils.ignoreTags(currentElement, regex)) {
+          return true;
+        }
 
         return await ParseUtils.parseElement(sb, currentElement);
       });
