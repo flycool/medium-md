@@ -7,8 +7,12 @@ export class ParseUtils {
     return MarkdownUtils;
   })();
 
+  static repeat(str, count) {
+    return new Array(count + 1).join(str);
+  }
+
   // return value : true 表示此elelment不处理它的children
-  static async parseElement(sb, e) {
+  static async parseElement(sb, node) {
     // 直接使用已初始化的模块（如果还在加载中会等待）
     const markdown = await this.markdown;
 
@@ -17,161 +21,417 @@ export class ParseUtils {
     //   return true;
     // }
 
-    const tagName = e.tagName.toLowerCase();
-    switch (tagName) {
-      case "div":
-        const attr = e.getAttribute("role");
-        if (attr === "separator") {
-          sb.append(markdown.separator()).br().br();
-          return true;
-        }
+    if (node.nodeType === Node.TEXT_NODE) {
+      const text = node.nodeValue;
+      sb.append(text);
+      return true;
+    }
 
-        const aChild = e.firstElementChild;
-        if (aChild && aChild.tagName.toLowerCase() === "a") {
-          const atext = aChild.textContent;
-          if (
-            aChild.getAttribute("data-testid") === "publicationName" ||
-            atext === undefined ||
-            atext === ""
-          ) {
-            return false;
-          }
+    if (
+      node.nodeType !== Node.ELEMENT_NODE &&
+      node.nodeType !== Node.DOCUMENT_FRAGMENT_NODE &&
+      node.nodeType !== Node.DOCUMENT_NODE
+    ) {
+      return "";
+    }
 
-          const h2e = e.getElementsByTagName("h2")[0];
-          const h2Text = h2e?.textContent;
+    const tag = node.tagName.toLowerCase();
 
-          let link = aChild.getAttribute("href");
-          if (link && link.includes("post_audio_button")) {
-            return false;
-          }
-          // if (!link.startsWith("https://") || !link.startsWith("http://")) {
-          //   link = "https://proandroiddev.com" + link;
-          // }
-          const a1 = markdown.a(h2Text ? h2Text : link, link);
-          sb.append(a1).br().br();
+    if (
+      tag === "h1" ||
+      tag === "h2" ||
+      tag === "h3" ||
+      tag === "h4" ||
+      tag === "h5" ||
+      tag === "h6"
+    ) {
+      const level = parseInt(tag[1], 10) || 1;
+      const hashes = this.repeat("#", Math.min(level, 6));
+      const text = Array.from(node.childNodes)
+        .map((n) => this.processInline(n))
+        .join("")
+        .trim();
+      sb.append(hashes + " " + text)
+        .br()
+        .br();
+      return true;
+    }
 
-          return true;
-        }
-        break;
-      case "h1":
-        this.parseParagraph(sb, e, "# ", markdown).br().br();
-        break;
-      case "h2":
-        this.parseParagraph(sb, e, "## ", markdown).br().br();
-        break;
-      case "h3":
-        this.parseParagraph(sb, e, "### ", markdown).br().br();
-        break;
-      case "h4":
-        this.parseParagraph(sb, e, "#### ", markdown).br().br();
-        break;
-      case "p":
-        const ptex = e?.textContent;
-        if (ptex === "") return true;
+    if (tag === "p") {
+      const text = Array.from(node.childNodes)
+        .map((n) => this.processInline(n))
+        .join("")
+        .trim();
+      sb.append(text).br().br();
+      return true;
+    }
 
-        this.parseParagraph(sb, e, "", markdown).br().br();
+    if (tag === "blockquote") {
+      const inner = Array.from(node.childNodes)
+        .map((n) => this.processInline(n))
+        .join("");
+      if (!inner) return "";
+      const quoted = inner
+        .split("\n")
+        .map(function (line) {
+          return line ? "> " + line : ">";
+        })
+        .join("\n");
+      sb.append(quoted).br().br();
+      return true;
+    }
+
+    if (tag === "div") {
+      const attr = node.getAttribute("role");
+      if (attr === "separator") {
+        sb.append(markdown.separator()).br().br();
         return true;
-      case "code":
-        const lang = e.hasAttribute("lang");
-        if (lang) {
-          const result = await this.parseSpanCode(e.innerHTML);
-          sb.append(markdown.formatCode(result)).br().br();
-          return true;
-        }
-        break;
-      case "span":
-        const hasAttr = e.hasAttribute("data-selectable-paragraph");
-        if (hasAttr) {
-          const result = await this.parseSpanCode(e.innerHTML);
-          sb.append(markdown.formatCode(result)).br().br();
-          return true;
-        }
-        break;
-      case "pre":
-        const result = await this.parseSpanCode(e.innerHTML);
+      }
+    }
+
+    if (tag === "a") {
+      const h2Node = node.querySelector("h2");
+      const h2Text = h2Node?.textContent;
+
+      let link = node.getAttribute("href");
+      if (link && link.includes("post_audio_button")) {
+        return false;
+      }
+      const a1 = markdown.a(h2Text ? h2Text : link, link);
+      sb.append(a1).br().br();
+      return true;
+    }
+
+    if (tag === "pre") {
+      const codeText = this.extractCode(node);
+      // Normalize line endings but keep content/spacing intact.
+      // codeText = codeText.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+      // Trim leading/trailing newlines without eating inner structure.
+      // codeText = codeText.replace(/^\n+/, "").replace(/\n+$/, "");
+      sb.append(markdown.formatCode(codeText)).br().br();
+      return true;
+    }
+
+    if (tag === "code") {
+      const lang = node.hasAttribute("lang");
+      if (lang) {
+        const result = this.extractCode(node);
         sb.append(markdown.formatCode(result)).br().br();
         return true;
-      case "blockquote":
-        const blockquoteChild = e.children;
-        if (blockquoteChild) {
-          [...blockquoteChild].forEach((bc) => {
-            this.parseParagraph(sb, bc, "> [!note]\n", markdown).br().br();
-          });
-        }
-        return true;
-      case "ol":
-        [...e.children].forEach((li, index) => {
-          const firstItem = `${index + 1}. `;
-          this.parseParagraph(sb, li, firstItem, markdown).br().br();
-        });
-        return true;
-      case "ul":
-        if(e.firstElementChild?.tagName.toLowerCase() === "ul") {
-          // don't handle the first ul element if exist
-          return false;
-        }
-        [...e.children].forEach((el) => {
-          const elTagName = el.tagName.toLowerCase();
-          let firstItem = "";
-          if(elTagName === "li") {
-            firstItem = "- ";
-            this.parseParagraph(sb, el, firstItem, markdown).br().br();
-          } else if (elTagName === "div") {
-            const imgEl = el.firstElementChild;
-            if(imgEl) {
-              const firsTagName = imgEl.tagName.toLowerCase()
-              if(firsTagName === "img") {
-                const inImgLink = imgEl.getAttribute("src");
-                const imgText = markdown.img("", inImgLink);
-                sb.append(imgText).br();
-              }
-            }
-          } else if (elTagName === "imgcaption") {
-            const imgdes = el.textContent;
-            sb.append(imgdes).br().br();
-          }
-        });
-        return true;
-      case "img":
-        let imglink = e?.getAttribute("src");
-        if(imglink) {
-          if (!imglink.includes("https")) {
-            imglink = "https:" + imglink;
-          }
-          const imgText = markdown.img("", imglink);
-          sb.append(imgText).br();
-          sb.br().br();
-        }
-        return true;
-      case "figure":
-        const imgElement = e.getElementsByTagName("img")[0];
-        const figcaptionElement = e.getElementsByTagName("figcaption")[0];
-        const imgUrl = imgElement?.getAttribute("src");
-        if (imgUrl && imgUrl !== "") {
-          const imgText = markdown.img("", imgUrl);
-          sb.append(imgText).br();
-
-          if (figcaptionElement) {
-            sb.append(figcaptionElement.textContent);
-          }
-          sb.br().br();
-          return true;
-        }
-        return false;
-      case "iframe":
-        this.decodeVideoUrl(e, sb, markdown);
-
-        const codes = await this.getGistFormatCode(e);
-
-        codes.forEach((code) => {
-          const fcode = markdown.formatCode(code);
-          sb.append(fcode).br().br();
-        });
-        return true;
-      default:
-        break;
+      }
     }
+    if (tag === "span") {
+      const hasAttr = node.hasAttribute("data-selectable-paragraph");
+      if (hasAttr) {
+        const result = this.extractCode(node);
+        sb.append(markdown.formatCode(result)).br().br();
+        return true;
+      }
+    }
+
+    if (tag === "iframe") {
+      this.decodeVideoUrl(node, sb, markdown);
+
+      const codes = await this.getGistFormatCode(node);
+
+      codes.forEach((code) => {
+        const fcode = markdown.formatCode(code);
+        sb.append(fcode).br().br();
+      });
+      return true;
+    }
+
+    if (tag === "img") {
+      let imglink = node?.getAttribute("src");
+      if (imglink) {
+        if (!imglink.includes("https")) {
+          imglink = "https:" + imglink;
+        }
+        const imgText = markdown.img("", imglink);
+        sb.append(imgText).br();
+        sb.br().br();
+      }
+      return true;
+    }
+
+    if (tag === "figure") {
+      const imgElement = node.getElementsByTagName("img")[0];
+      const figcaptionElement = node.getElementsByTagName("figcaption")[0];
+      const imgUrl = imgElement?.getAttribute("src");
+      if (imgUrl && imgUrl !== "") {
+        const imgText = markdown.img("", imgUrl);
+        sb.append(imgText).br();
+
+        if (figcaptionElement) {
+          sb.append(figcaptionElement.textContent);
+        }
+        sb.br().br();
+        return true;
+      }
+    }
+
+    if (tag === "ol") {
+      [...node.children].forEach((li, index) => {
+        const firstItem = `${index + 1}. `;
+        const text = firstItem + this.processInline(li);
+        sb.append(text).br().br();
+      });
+      return true;
+    }
+
+    if (tag === "ul") {
+      if (node.firstElementChild?.tagName.toLowerCase() === "ul") {
+        // don't handle the first ul element if exist
+        return false;
+      }
+      [...node.children].forEach((el) => {
+        const elTagName = el.tagName.toLowerCase();
+        let firstItem = "";
+        if (elTagName === "li") {
+          firstItem = "- ";
+          const text = firstItem + this.processInline(el);
+          sb.append(text).br().br();
+        } else if (elTagName === "div") {
+          const imgEl = el.firstElementChild;
+          if (imgEl) {
+            const firsTagName = imgEl.tagName.toLowerCase();
+            if (firsTagName === "img") {
+              const inImgLink = imgEl.getAttribute("src");
+              const imgText = markdown.img("", inImgLink);
+              sb.append(imgText).br();
+            }
+          }
+        } else if (elTagName === "imgcaption") {
+          const imgdes = el.textContent;
+          sb.append(imgdes).br().br();
+        }
+      });
+      return true;
+    }
+
+    // switch (tagName) {
+    //   case "div":
+    //     const attr = e.getAttribute("role");
+    //     if (attr === "separator") {
+    //       sb.append(markdown.separator()).br().br();
+    //       return true;
+    //     }
+
+    //     const aChild = e.firstElementChild;
+    //     if (aChild && aChild.tagName.toLowerCase() === "a") {
+    //       const atext = aChild.textContent;
+    //       if (
+    //         aChild.getAttribute("data-testid") === "publicationName" ||
+    //         atext === undefined ||
+    //         atext === ""
+    //       ) {
+    //         return false;
+    //       }
+
+    //       const h2e = e.getElementsByTagName("h2")[0];
+    //       const h2Text = h2e?.textContent;
+
+    //       let link = aChild.getAttribute("href");
+    //       if (link && link.includes("post_audio_button")) {
+    //         return false;
+    //       }
+    //       // if (!link.startsWith("https://") || !link.startsWith("http://")) {
+    //       //   link = "https://proandroiddev.com" + link;
+    //       // }
+    //       const a1 = markdown.a(h2Text ? h2Text : link, link);
+    //       sb.append(a1).br().br();
+
+    //       return true;
+    //     }
+    //     break;
+    //   case "h1":
+    //     //this.parseParagraph(sb, e, "# ", markdown).br().br();
+    //     const text = this.processInline(e);
+    //     const h1Text = markdown.h1(text);
+    //     sb.append(h1Text).br().br();
+    //     break;
+    //   case "h2":
+    //     // this.parseParagraph(sb, e, "## ", markdown).br().br();
+    //     const text2 = this.processInline(e);
+    //     const h2Text = markdown.h2(text2);
+    //     sb.append(h2Text).br().br();
+    //     break;
+    //   case "h3":
+    //     // this.parseParagraph(sb, e, "### ", markdown).br().br();
+    //     const text3 = this.processInline(e);
+    //     const h3Text = markdown.h3(text3);
+    //     sb.append(h3Text).br().br();
+    //     break;
+    //   case "h4":
+    //     // this.parseParagraph(sb, e, "#### ", markdown).br().br();
+    //     const text4 = this.processInline(e);
+    //     const h4Text = markdown.h4(text4);
+    //     sb.append(h4Text).br().br();
+    //     break;
+    //   case "p":
+    //     const ptex = e?.textContent;
+    //     if (ptex === "") return true;
+
+    //     // this.parseParagraph(sb, e, "", markdown).br().br();
+    //     sb.append(this.processInline(e)).br().br();
+    //     return true;
+    //   case "code":
+    //     const lang = e.hasAttribute("lang");
+    //     if (lang) {
+    //       const result = await this.parseSpanCode(e.innerHTML);
+    //       sb.append(markdown.formatCode(result)).br().br();
+    //       return true;
+    //     }
+    //     break;
+    //   case "span":
+    //     const hasAttr = e.hasAttribute("data-selectable-paragraph");
+    //     if (hasAttr) {
+    //       const result = await this.parseSpanCode(e.innerHTML);
+    //       sb.append(markdown.formatCode(result)).br().br();
+    //       return true;
+    //     }
+    //     break;
+    //   case "pre":
+    //     const result = await this.parseSpanCode(e.innerHTML);
+    //     sb.append(markdown.formatCode(result)).br().br();
+    //     return true;
+    //   case "blockquote":
+    //     const blockquoteChild = e.children;
+    //     if (blockquoteChild) {
+    //       [...blockquoteChild].forEach((bc) => {
+    //         // this.parseParagraph(sb, bc, "> [!note]\n", markdown).br().br();
+    //         sb.append(this.processInline(e)).br().br();
+    //       });
+    //     }
+    //     return true;
+    //   case "ol":
+    //     [...e.children].forEach((li, index) => {
+    //       const firstItem = `${index + 1}. `;
+    //       // this.parseParagraph(sb, li, firstItem, markdown).br().br();
+    //       const text = firstItem + this.processInline(li);
+    //       sb.append(text).br().br();
+    //     });
+    //     return true;
+    //   case "ul":
+    //     if (e.firstElementChild?.tagName.toLowerCase() === "ul") {
+    //       // don't handle the first ul element if exist
+    //       return false;
+    //     }
+    //     [...e.children].forEach((el) => {
+    //       const elTagName = el.tagName.toLowerCase();
+    //       let firstItem = "";
+    //       if (elTagName === "li") {
+    //         firstItem = "- ";
+    //         // this.parseParagraph(sb, el, firstItem, markdown).br().br();
+    //         sb.append(this.processInline(e)).br().br();
+    //       } else if (elTagName === "div") {
+    //         const imgEl = el.firstElementChild;
+    //         if (imgEl) {
+    //           const firsTagName = imgEl.tagName.toLowerCase();
+    //           if (firsTagName === "img") {
+    //             const inImgLink = imgEl.getAttribute("src");
+    //             const imgText = markdown.img("", inImgLink);
+    //             sb.append(imgText).br();
+    //           }
+    //         }
+    //       } else if (elTagName === "imgcaption") {
+    //         const imgdes = el.textContent;
+    //         sb.append(imgdes).br().br();
+    //       }
+    //     });
+    //     return true;
+    //   case "img":
+    //     let imglink = e?.getAttribute("src");
+    //     if (imglink) {
+    //       if (!imglink.includes("https")) {
+    //         imglink = "https:" + imglink;
+    //       }
+    //       const imgText = markdown.img("", imglink);
+    //       sb.append(imgText).br();
+    //       sb.br().br();
+    //     }
+    //     return true;
+    //   case "figure":
+    //     const imgElement = e.getElementsByTagName("img")[0];
+    //     const figcaptionElement = e.getElementsByTagName("figcaption")[0];
+    //     const imgUrl = imgElement?.getAttribute("src");
+    //     if (imgUrl && imgUrl !== "") {
+    //       const imgText = markdown.img("", imgUrl);
+    //       sb.append(imgText).br();
+
+    //       if (figcaptionElement) {
+    //         sb.append(figcaptionElement.textContent);
+    //       }
+    //       sb.br().br();
+    //       return true;
+    //     }
+    //     return false;
+    //   case "iframe":
+    //     this.decodeVideoUrl(e, sb, markdown);
+
+    //     const codes = await this.getGistFormatCode(e);
+
+    //     codes.forEach((code) => {
+    //       const fcode = markdown.formatCode(code);
+    //       sb.append(fcode).br().br();
+    //     });
+    //     return true;
+    //   default:
+    //     break;
+    // }
     return false;
+  }
+
+  static processInline(node) {
+    if (node.nodeType === Node.TEXT_NODE) {
+      return node.nodeValue;
+    }
+
+    if (node.nodeType !== Node.ELEMENT_NODE) {
+      return "";
+    }
+
+    const tag = node.tagName?.toLowerCase();
+    const childText = Array.from(node.childNodes)
+      .map((n) => this.processInline(n))
+      .join("");
+
+    if (tag === "strong" || tag === "b") {
+      const trimmed = childText.trim();
+      if (!trimmed) return "";
+      return "**" + trimmed + "**";
+    }
+
+    if (tag === "em" || tag === "i") {
+      const trimmed = childText.trim();
+      if (!trimmed) return "";
+      return "_" + trimmed + "_";
+    }
+
+    if (tag === "code") {
+      const trimmed = childText.trim();
+      if (!trimmed) return "";
+      return "`" + trimmed + "`";
+    }
+
+    if (tag === "a") {
+      const href = node.getAttribute("href");
+      const text = childText.trim() || href || "";
+      if (!href) {
+        return text;
+      }
+      return "[" + text + "](" + href + ")";
+    }
+
+    if (tag === "img") {
+      const alt = node.getAttribute("alt") || "";
+      const src = node.getAttribute("src") || "";
+      if (!src) return "";
+      return "![" + alt + "](" + src + ")";
+    }
+
+    // Fallback: inline children
+    return childText;
   }
 
   static parseParagraph(sb, e, firstItem = "", markdown) {
@@ -215,7 +475,7 @@ export class ParseUtils {
         if (strongTag !== undefined) {
           const codeStrongText = this.formatHasBlankText(
             codeText,
-            markdown.bold(codeText)
+            markdown.bold(codeText),
           );
           formatCode = codeStrongText;
         }
@@ -231,12 +491,12 @@ export class ParseUtils {
           loopIndex,
           originalText,
           orgWordArray,
-          formatCode
+          formatCode,
         );
       } else if (tName === "strong" || tName === "b") {
         let restText = originalText;
         let isNotation = this.checkIsNotation(restText);
-        
+
         if (!isNotation) {
           const strongText = this.handleStrongBlankText(originalText, markdown);
           formatCode = strongText;
@@ -259,7 +519,7 @@ export class ParseUtils {
             loopIndex,
             restText,
             orgWordArray,
-            formatCode
+            formatCode,
           );
         }
       } else if (tName === "a") {
@@ -271,7 +531,7 @@ export class ParseUtils {
           loopIndex,
           originalText,
           orgWordArray,
-          formatCode
+          formatCode,
         );
       }
     }
@@ -328,6 +588,33 @@ export class ParseUtils {
       }
     }
     return codeArray;
+  }
+
+  static extractCode(node) {
+    if (!node) return "";
+
+    if (node.nodeType === Node.TEXT_NODE) {
+      return node.nodeValue || "";
+    }
+
+    if (node.nodeType !== Node.ELEMENT_NODE) {
+      return "";
+    }
+
+    const tag = node.tagName.toLowerCase();
+    if (tag === "br") {
+      return "\n";
+    }
+
+    if (tag === "script" || tag === "style" || tag === "noscript") {
+      return "";
+    }
+
+    let out = "";
+    for (const child of Array.from(node.childNodes)) {
+      out += this.extractCode(child);
+    }
+    return out;
   }
 
   static async parseSpanCode(html) {
@@ -461,7 +748,7 @@ export class ParseUtils {
           ">": "&gt;",
           "'": "&#39;",
           '"': "&quot;",
-        }[tag] || tag)
+        })[tag] || tag,
     );
 
   static unescapeHTML = (str) =>
@@ -474,6 +761,6 @@ export class ParseUtils {
           "&gt;": ">",
           "&#39;": "'",
           "&quot;": '"',
-        }[tag] || tag)
+        })[tag] || tag,
     );
 }
