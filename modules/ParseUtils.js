@@ -7,19 +7,10 @@ export class ParseUtils {
     return MarkdownUtils;
   })();
 
-  static repeat(str, count) {
-    return new Array(count + 1).join(str);
-  }
-
   // return value : true 表示此elelment不处理它的children
   static async parseElement(sb, node) {
     // 直接使用已初始化的模块（如果还在加载中会等待）
     const markdown = await this.markdown;
-
-    // const classAttrText = e.getAttribute("class");
-    // if (classAttrText?.includes("speechify-ignore")) {
-    //   return true;
-    // }
 
     if (node.nodeType === Node.TEXT_NODE) {
       const text = node.nodeValue;
@@ -48,9 +39,11 @@ export class ParseUtils {
       const level = parseInt(tag[1], 10) || 1;
       const hashes = this.repeat("#", Math.min(level, 6));
       const text = Array.from(node.childNodes)
-        .map((n) => this.processInline(n))
-        .join("")
-        .trim();
+        .map((n) => {
+          const re = this.processInline(n);
+          return this.swapMarkers(re);
+        })
+        .join("");
       sb.append(hashes + " " + text)
         .br()
         .br();
@@ -59,17 +52,20 @@ export class ParseUtils {
 
     if (tag === "p") {
       const text = Array.from(node.childNodes)
-        .map((n) => this.processInline(n))
-        .join("")
-        .trim();
+        .map((n) => {
+          const re = this.processInline(n);
+          return this.swapMarkers(re);
+        })
+        .join("");
       sb.append(text).br().br();
       return true;
     }
 
     if (tag === "blockquote") {
       const inner = Array.from(node.childNodes)
-        .map((n) => this.processInline(n))
-        .join("");
+        .map((n) => this.processBlockChildren(n))
+        .join("\n");
+
       if (!inner) return "";
       const quoted = inner
         .split("\n")
@@ -104,10 +100,6 @@ export class ParseUtils {
 
     if (tag === "pre") {
       const codeText = this.extractCode(node);
-      // Normalize line endings but keep content/spacing intact.
-      // codeText = codeText.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
-      // Trim leading/trailing newlines without eating inner structure.
-      // codeText = codeText.replace(/^\n+/, "").replace(/\n+$/, "");
       sb.append(markdown.formatCode(codeText)).br().br();
       return true;
     }
@@ -173,7 +165,13 @@ export class ParseUtils {
     if (tag === "ol") {
       [...node.children].forEach((li, index) => {
         const firstItem = `${index + 1}. `;
-        const text = firstItem + this.processInline(li);
+        const childText = Array.from(li.childNodes)
+          .map((n) => {
+            const re = this.processInline(n);
+            return this.swapMarkers(re);
+          })
+          .join("");
+        const text = firstItem + childText;
         sb.append(text).br().br();
       });
       return true;
@@ -189,7 +187,13 @@ export class ParseUtils {
         let firstItem = "";
         if (elTagName === "li") {
           firstItem = "- ";
-          const text = firstItem + this.processInline(el);
+          const childText = Array.from(el.childNodes)
+            .map((n) => {
+              const re = this.processInline(n);
+              return this.swapMarkers(re);
+            })
+            .join("");
+          const text = firstItem + childText;
           sb.append(text).br().br();
         } else if (elTagName === "div") {
           const imgEl = el.firstElementChild;
@@ -209,177 +213,25 @@ export class ParseUtils {
       return true;
     }
 
-    // switch (tagName) {
-    //   case "div":
-    //     const attr = e.getAttribute("role");
-    //     if (attr === "separator") {
-    //       sb.append(markdown.separator()).br().br();
-    //       return true;
-    //     }
-
-    //     const aChild = e.firstElementChild;
-    //     if (aChild && aChild.tagName.toLowerCase() === "a") {
-    //       const atext = aChild.textContent;
-    //       if (
-    //         aChild.getAttribute("data-testid") === "publicationName" ||
-    //         atext === undefined ||
-    //         atext === ""
-    //       ) {
-    //         return false;
-    //       }
-
-    //       const h2e = e.getElementsByTagName("h2")[0];
-    //       const h2Text = h2e?.textContent;
-
-    //       let link = aChild.getAttribute("href");
-    //       if (link && link.includes("post_audio_button")) {
-    //         return false;
-    //       }
-    //       // if (!link.startsWith("https://") || !link.startsWith("http://")) {
-    //       //   link = "https://proandroiddev.com" + link;
-    //       // }
-    //       const a1 = markdown.a(h2Text ? h2Text : link, link);
-    //       sb.append(a1).br().br();
-
-    //       return true;
-    //     }
-    //     break;
-    //   case "h1":
-    //     //this.parseParagraph(sb, e, "# ", markdown).br().br();
-    //     const text = this.processInline(e);
-    //     const h1Text = markdown.h1(text);
-    //     sb.append(h1Text).br().br();
-    //     break;
-    //   case "h2":
-    //     // this.parseParagraph(sb, e, "## ", markdown).br().br();
-    //     const text2 = this.processInline(e);
-    //     const h2Text = markdown.h2(text2);
-    //     sb.append(h2Text).br().br();
-    //     break;
-    //   case "h3":
-    //     // this.parseParagraph(sb, e, "### ", markdown).br().br();
-    //     const text3 = this.processInline(e);
-    //     const h3Text = markdown.h3(text3);
-    //     sb.append(h3Text).br().br();
-    //     break;
-    //   case "h4":
-    //     // this.parseParagraph(sb, e, "#### ", markdown).br().br();
-    //     const text4 = this.processInline(e);
-    //     const h4Text = markdown.h4(text4);
-    //     sb.append(h4Text).br().br();
-    //     break;
-    //   case "p":
-    //     const ptex = e?.textContent;
-    //     if (ptex === "") return true;
-
-    //     // this.parseParagraph(sb, e, "", markdown).br().br();
-    //     sb.append(this.processInline(e)).br().br();
-    //     return true;
-    //   case "code":
-    //     const lang = e.hasAttribute("lang");
-    //     if (lang) {
-    //       const result = await this.parseSpanCode(e.innerHTML);
-    //       sb.append(markdown.formatCode(result)).br().br();
-    //       return true;
-    //     }
-    //     break;
-    //   case "span":
-    //     const hasAttr = e.hasAttribute("data-selectable-paragraph");
-    //     if (hasAttr) {
-    //       const result = await this.parseSpanCode(e.innerHTML);
-    //       sb.append(markdown.formatCode(result)).br().br();
-    //       return true;
-    //     }
-    //     break;
-    //   case "pre":
-    //     const result = await this.parseSpanCode(e.innerHTML);
-    //     sb.append(markdown.formatCode(result)).br().br();
-    //     return true;
-    //   case "blockquote":
-    //     const blockquoteChild = e.children;
-    //     if (blockquoteChild) {
-    //       [...blockquoteChild].forEach((bc) => {
-    //         // this.parseParagraph(sb, bc, "> [!note]\n", markdown).br().br();
-    //         sb.append(this.processInline(e)).br().br();
-    //       });
-    //     }
-    //     return true;
-    //   case "ol":
-    //     [...e.children].forEach((li, index) => {
-    //       const firstItem = `${index + 1}. `;
-    //       // this.parseParagraph(sb, li, firstItem, markdown).br().br();
-    //       const text = firstItem + this.processInline(li);
-    //       sb.append(text).br().br();
-    //     });
-    //     return true;
-    //   case "ul":
-    //     if (e.firstElementChild?.tagName.toLowerCase() === "ul") {
-    //       // don't handle the first ul element if exist
-    //       return false;
-    //     }
-    //     [...e.children].forEach((el) => {
-    //       const elTagName = el.tagName.toLowerCase();
-    //       let firstItem = "";
-    //       if (elTagName === "li") {
-    //         firstItem = "- ";
-    //         // this.parseParagraph(sb, el, firstItem, markdown).br().br();
-    //         sb.append(this.processInline(e)).br().br();
-    //       } else if (elTagName === "div") {
-    //         const imgEl = el.firstElementChild;
-    //         if (imgEl) {
-    //           const firsTagName = imgEl.tagName.toLowerCase();
-    //           if (firsTagName === "img") {
-    //             const inImgLink = imgEl.getAttribute("src");
-    //             const imgText = markdown.img("", inImgLink);
-    //             sb.append(imgText).br();
-    //           }
-    //         }
-    //       } else if (elTagName === "imgcaption") {
-    //         const imgdes = el.textContent;
-    //         sb.append(imgdes).br().br();
-    //       }
-    //     });
-    //     return true;
-    //   case "img":
-    //     let imglink = e?.getAttribute("src");
-    //     if (imglink) {
-    //       if (!imglink.includes("https")) {
-    //         imglink = "https:" + imglink;
-    //       }
-    //       const imgText = markdown.img("", imglink);
-    //       sb.append(imgText).br();
-    //       sb.br().br();
-    //     }
-    //     return true;
-    //   case "figure":
-    //     const imgElement = e.getElementsByTagName("img")[0];
-    //     const figcaptionElement = e.getElementsByTagName("figcaption")[0];
-    //     const imgUrl = imgElement?.getAttribute("src");
-    //     if (imgUrl && imgUrl !== "") {
-    //       const imgText = markdown.img("", imgUrl);
-    //       sb.append(imgText).br();
-
-    //       if (figcaptionElement) {
-    //         sb.append(figcaptionElement.textContent);
-    //       }
-    //       sb.br().br();
-    //       return true;
-    //     }
-    //     return false;
-    //   case "iframe":
-    //     this.decodeVideoUrl(e, sb, markdown);
-
-    //     const codes = await this.getGistFormatCode(e);
-
-    //     codes.forEach((code) => {
-    //       const fcode = markdown.formatCode(code);
-    //       sb.append(fcode).br().br();
-    //     });
-    //     return true;
-    //   default:
-    //     break;
-    // }
     return false;
+  }
+
+  static processBlockChildren(parent) {
+    if (!parent.childNodes) {
+      return "";
+    }
+    const text = Array.from(parent.childNodes)
+      .map((n) => {
+        const re = this.processInline(n);
+        return this.swapMarkers(re);
+      })
+      .join("");
+
+    return text;
+  }
+
+  static swapMarkers(text) {
+    return text.replace(/^([`*_]+)(.+?)([`*_]+)$/, "$3$2$1");
   }
 
   static processInline(node) {
@@ -392,35 +244,55 @@ export class ParseUtils {
     }
 
     const tag = node.tagName?.toLowerCase();
+
     const childText = Array.from(node.childNodes)
       .map((n) => this.processInline(n))
       .join("");
 
     if (tag === "strong" || tag === "b") {
-      const trimmed = childText.trim();
-      if (!trimmed) return "";
-      return "**" + trimmed + "**";
+      let restText = childText;
+      let isNotation = this.checkIsNotation(restText);
+
+      let formatted = ""
+      if(!isNotation) {
+        const strongText = "**" + childText.trim() + "**";
+        formatted = this.handleBlankText(childText, strongText);
+      } else {
+        formatted = restText;
+      }
+      
+      return formatted;
     }
 
     if (tag === "em" || tag === "i") {
-      const trimmed = childText.trim();
-      if (!trimmed) return "";
-      return "_" + trimmed + "_";
+      let restText = childText;
+      let isNotation = this.checkIsNotation(restText);
+
+      let formatted = ""
+      if(!isNotation) {
+        const emText = "_" + childText.trim() + "_";
+        formatted = this.handleBlankText(childText, emText);
+      } else {
+        formatted = restText;
+      }
+      
+      return formatted;
     }
 
     if (tag === "code") {
       const trimmed = childText.trim();
-      if (!trimmed) return "";
-      return "`" + trimmed + "`";
+      const formattedText = "`" + trimmed + "`";
+      const formatted = this.formatHasBlankText(childText, formattedText);
+      return formatted;
     }
 
     if (tag === "a") {
       const href = node.getAttribute("href");
-      const text = childText.trim() || href || "";
+      const text2 = childText.trim() || href || "";
       if (!href) {
-        return text;
+        return text2;
       }
-      return "[" + text + "](" + href + ")";
+      return "[" + text2 + "](" + href + ")";
     }
 
     if (tag === "img") {
@@ -430,126 +302,130 @@ export class ParseUtils {
       return "![" + alt + "](" + src + ")";
     }
 
+    if (tag === "br") {
+      return childText + "\n";
+    }
+
     // Fallback: inline children
     return childText;
   }
 
-  static parseParagraph(sb, e, firstItem = "", markdown) {
-    const patternOuterHtml = />([^<]+)</g; // 排除 >< 空字符
+  // static parseParagraph(sb, e, firstItem = "", markdown) {
+  //   const patternOuterHtml = />([^<]+)</g; // 排除 >< 空字符
 
-    const outerHTML = e.outerHTML;
-    // console.log("outerhtml==", outerHTML);
+  //   const outerHTML = e.outerHTML;
+  //   // console.log("outerhtml==", outerHTML);
 
-    let orgWordArray = [];
-    let brArray = outerHTML.split("<br>");
+  //   let orgWordArray = [];
+  //   let brArray = outerHTML.split("<br>");
 
-    if (brArray.length > 1) {
-      for (let tag of brArray) {
-        let brHtml = ">" + tag + "<"; // to fit patternOuterHtml
-        let tagArray = this.formatHtmlToArray(brHtml, patternOuterHtml);
+  //   if (brArray.length > 1) {
+  //     for (let tag of brArray) {
+  //       let brHtml = ">" + tag + "<"; // to fit patternOuterHtml
+  //       let tagArray = this.formatHtmlToArray(brHtml, patternOuterHtml);
 
-        tagArray.push("\r\n");
-        orgWordArray.push(...tagArray);
-      }
+  //       tagArray.push("\r\n");
+  //       orgWordArray.push(...tagArray);
+  //     }
 
-      orgWordArray.pop(); // remove the last br
-    } else {
-      orgWordArray = this.formatHtmlToArray(outerHTML, patternOuterHtml);
-    }
+  //     orgWordArray.pop(); // remove the last br
+  //   } else {
+  //     orgWordArray = this.formatHtmlToArray(outerHTML, patternOuterHtml);
+  //   }
 
-    // console.log("orgWordArray:=", orgWordArray);
+  //   // console.log("orgWordArray:=", orgWordArray);
 
-    let loopIndex = 0;
+  //   let loopIndex = 0;
 
-    const children = e.children;
-    for (const child of children) {
-      const tName = child.tagName.toLowerCase();
-      const originalText = child.textContent;
-      let formatCode = originalText;
+  //   const children = e.children;
+  //   for (const child of children) {
+  //     const tName = child.tagName.toLowerCase();
+  //     const originalText = child.textContent;
+  //     let formatCode = originalText;
 
-      if (tName === "code" || tName === "span") {
-        const codeText = markdown.code(originalText);
-        formatCode = codeText;
+  //     if (tName === "code" || tName === "span") {
+  //       const codeText = markdown.code(originalText);
+  //       formatCode = codeText;
 
-        const strongTag = child.getElementsByTagName("strong")[0];
-        if (strongTag !== undefined) {
-          const codeStrongText = this.formatHasBlankText(
-            codeText,
-            markdown.bold(codeText),
-          );
-          formatCode = codeStrongText;
-        }
+  //       const strongTag = child.getElementsByTagName("strong")[0];
+  //       if (strongTag !== undefined) {
+  //         const codeStrongText = this.formatHasBlankText(
+  //           codeText,
+  //           markdown.bold(codeText),
+  //         );
+  //         formatCode = codeStrongText;
+  //       }
 
-        const aTag = child.getElementsByTagName("a")[0];
-        if (aTag !== undefined) {
-          const link = aTag.getAttribute("href");
-          const alink = markdown.a(codeText, link);
-          formatCode = alink;
-        }
+  //       const aTag = child.getElementsByTagName("a")[0];
+  //       if (aTag !== undefined) {
+  //         const link = aTag.getAttribute("href");
+  //         const alink = markdown.a(codeText, link);
+  //         formatCode = alink;
+  //       }
 
-        loopIndex = this.formatArray(
-          loopIndex,
-          originalText,
-          orgWordArray,
-          formatCode,
-        );
-      } else if (tName === "strong" || tName === "b") {
-        let restText = originalText;
-        let isNotation = this.checkIsNotation(restText);
+  //       loopIndex = this.formatArray(
+  //         loopIndex,
+  //         originalText,
+  //         orgWordArray,
+  //         formatCode,
+  //       );
+  //     } else if (tName === "strong" || tName === "b") {
+  //       let restText = originalText;
+  //       let isNotation = this.checkIsNotation(restText);
 
-        if (!isNotation) {
-          const strongText = this.handleStrongBlankText(originalText, markdown);
-          formatCode = strongText;
-        } else {
-          formatCode = restText;
-        }
+  //       if (!isNotation) {
+  //         const strongText = this.handleStrongBlankText(originalText, markdown);
+  //         formatCode = strongText;
+  //       } else {
+  //         formatCode = restText;
+  //       }
 
-        const atag = child.getElementsByTagName("a")[0];
-        if (atag !== undefined) {
-          const aText = atag.textContent;
-          const aStrongText = markdown.bold(aText);
-          const link = atag.getAttribute("href");
-          const alink = markdown.a(aStrongText, link);
-          formatCode = alink;
-          restText = aText;
-        }
+  //       const atag = child.getElementsByTagName("a")[0];
+  //       if (atag !== undefined) {
+  //         const aText = atag.textContent;
+  //         const aStrongText = markdown.bold(aText);
+  //         const link = atag.getAttribute("href");
+  //         const alink = markdown.a(aStrongText, link);
+  //         formatCode = alink;
+  //         restText = aText;
+  //       }
 
-        if (restText !== "") {
-          loopIndex = this.formatArray(
-            loopIndex,
-            restText,
-            orgWordArray,
-            formatCode,
-          );
-        }
-      } else if (tName === "a") {
-        const link = child.getAttribute("href");
-        const a1 = markdown.a(originalText, link);
-        formatCode = a1;
+  //       if (restText !== "") {
+  //         loopIndex = this.formatArray(
+  //           loopIndex,
+  //           restText,
+  //           orgWordArray,
+  //           formatCode,
+  //         );
+  //       }
+  //     } else if (tName === "a") {
+  //       const link = child.getAttribute("href");
+  //       const a1 = markdown.a(originalText, link);
+  //       formatCode = a1;
 
-        loopIndex = this.formatArray(
-          loopIndex,
-          originalText,
-          orgWordArray,
-          formatCode,
-        );
-      }
-    }
+  //       loopIndex = this.formatArray(
+  //         loopIndex,
+  //         originalText,
+  //         orgWordArray,
+  //         formatCode,
+  //       );
+  //     }
+  //   }
 
-    if (firstItem !== "") {
-      orgWordArray.unshift(firstItem);
-    }
+  //   if (firstItem !== "") {
+  //     orgWordArray.unshift(firstItem);
+  //   }
 
-    orgWordArray = orgWordArray.map((s) => {
-      return this.replaceApostrophen(s);
-    });
+  //   orgWordArray = orgWordArray.map((s) => {
+  //     return this.replaceApostrophen(s);
+  //   });
 
-    // console.log("orgWordArray2:=", orgWordArray);
+  //   // console.log("orgWordArray2:=", orgWordArray);
 
-    sb.append(orgWordArray.join(""));
+  //   sb.append(orgWordArray.join(""));
 
-    return sb;
-  }
+  //   return sb;
+  // }
 
   ///////////////////////////////////////////////
 
@@ -617,44 +493,6 @@ export class ParseUtils {
     return out;
   }
 
-  static async parseSpanCode(html) {
-    const markdown = await this.markdown;
-    const sb = markdown.createStringBuffer();
-
-    const spanList = html.split("<br>");
-    [...spanList].forEach((s, index) => {
-      s.split("</span>").forEach((ss) => {
-        const code = this.unescapeHTML(this.removeSpan(ss));
-        sb.append(code);
-      });
-      if (index !== spanList.length - 1) {
-        sb.br();
-      }
-    });
-    return sb.toString();
-  }
-
-  static removeSpan(s) {
-    const arrayIndex = new Array();
-    let indexArray = new Array(2).fill(-1);
-    [...s].forEach((c, index) => {
-      if (c === "<") {
-        indexArray = new Array(2).fill(-1);
-        indexArray[0] = index;
-      } else if (c === ">") {
-        indexArray[1] = index + 1;
-        arrayIndex.push(indexArray);
-      }
-    });
-    let result = s;
-    arrayIndex.forEach((intArray) => {
-      const slice = s.slice(intArray[0], intArray[1]);
-      //   console.log("slice: = ", slice);
-      result = result.replace(slice, "");
-    });
-    return result;
-  }
-
   static decodeVideoUrl(e, sb, markdown) {
     const src = e.getAttribute("src");
     if (src === null || !src.includes("youtube")) return;
@@ -692,6 +530,10 @@ export class ParseUtils {
     return result;
   }
 
+  static repeat(str, count) {
+    return new Array(count + 1).join(str);
+  }
+
   static checkIsNotation(str) {
     let trimStr = str.trim();
     return trimStr.length === 1 && !this.isAlphanumberic(trimStr);
@@ -711,56 +553,56 @@ export class ParseUtils {
     return true;
   }
 
-  static handleStrongBlankText(text, markdown) {
-    const st = this.isStringBlank(text) ? text : markdown.bold(text.trim());
+  static handleBlankText(text, formatText) {
+    const st = this.isStringBlank(text) ? text : formatText;
     return this.formatHasBlankText(text, st);
   }
 
   // 将 ’（中文）改成 '(英文的)
-  static replaceApostrophen(content) {
-    return content.replace(/’/g, "'");
-  }
+  // static replaceApostrophen(content) {
+  //   return content.replace(/’/g, "'");
+  // }
 
-  static formatArray(index, originalText, array, formatCode) {
-    for (let i = index; i < array.length; i++) {
-      const w = array[i];
-      if (originalText === w) {
-        array[i] = formatCode;
-        return i + 1;
-      }
-    }
-    return 0;
-  }
+  // static formatArray(index, originalText, array, formatCode) {
+  //   for (let i = index; i < array.length; i++) {
+  //     const w = array[i];
+  //     if (originalText === w) {
+  //       array[i] = formatCode;
+  //       return i + 1;
+  //     }
+  //   }
+  //   return 0;
+  // }
 
-  static formatHtmlToArray(html, pattern) {
-    return Array.from(html.matchAll(pattern), (m) => m[1]).map((s) => {
-      return this.unescapeHTML(s);
-    });
-  }
+  // static formatHtmlToArray(html, pattern) {
+  //   return Array.from(html.matchAll(pattern), (m) => m[1]).map((s) => {
+  //     return this.unescapeHTML(s);
+  //   });
+  // }
 
-  static escapeHTML = (str) =>
-    str.replace(
-      /[&<>'"]/g,
-      (tag) =>
-        ({
-          "&": "&amp;",
-          "<": "&lt;",
-          ">": "&gt;",
-          "'": "&#39;",
-          '"': "&quot;",
-        })[tag] || tag,
-    );
+  // static escapeHTML = (str) =>
+  //   str.replace(
+  //     /[&<>'"]/g,
+  //     (tag) =>
+  //       ({
+  //         "&": "&amp;",
+  //         "<": "&lt;",
+  //         ">": "&gt;",
+  //         "'": "&#39;",
+  //         '"': "&quot;",
+  //       })[tag] || tag,
+  //   );
 
-  static unescapeHTML = (str) =>
-    str.replace(
-      /&amp;|&lt;|&gt;|&#39;|&quot;/g,
-      (tag) =>
-        ({
-          "&amp;": "&",
-          "&lt;": "<",
-          "&gt;": ">",
-          "&#39;": "'",
-          "&quot;": '"',
-        })[tag] || tag,
-    );
+  // static unescapeHTML = (str) =>
+  //   str.replace(
+  //     /&amp;|&lt;|&gt;|&#39;|&quot;/g,
+  //     (tag) =>
+  //       ({
+  //         "&amp;": "&",
+  //         "&lt;": "<",
+  //         "&gt;": ">",
+  //         "&#39;": "'",
+  //         "&quot;": '"',
+  //       })[tag] || tag,
+  //   );
 }

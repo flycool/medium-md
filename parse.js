@@ -15,7 +15,7 @@
     let fileName = "";
     let publishTime = "";
     let orgUrl = "";
-    const memberUrl = "https://medium.com/plans";
+    const memberUrl = "https://medium.com";
     let isTagIgnored = false;
     let isMemberLinkSkipped = false;
 
