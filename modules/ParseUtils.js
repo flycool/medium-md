@@ -253,14 +253,14 @@ export class ParseUtils {
       let restText = childText;
       let isNotation = this.checkIsNotation(restText);
 
-      let formatted = ""
-      if(!isNotation) {
+      let formatted = "";
+      if (!isNotation) {
         const strongText = "**" + childText.trim() + "**";
         formatted = this.handleBlankText(childText, strongText);
       } else {
         formatted = restText;
       }
-      
+
       return formatted;
     }
 
@@ -268,14 +268,14 @@ export class ParseUtils {
       let restText = childText;
       let isNotation = this.checkIsNotation(restText);
 
-      let formatted = ""
-      if(!isNotation) {
+      let formatted = "";
+      if (!isNotation) {
         const emText = "_" + childText.trim() + "_";
         formatted = this.handleBlankText(childText, emText);
       } else {
         formatted = restText;
       }
-      
+
       return formatted;
     }
 
@@ -441,26 +441,42 @@ export class ParseUtils {
     if (iframdom) {
       const gistDatas = iframdom.getElementsByClassName("gist-data");
       for (const gitstCode of gistDatas) {
-        const codea = gitstCode.textContent.split("\n");
-        const blankLen = codea[1].length;
-        const cmap = [...codea]
-          .map((c) => {
-            return c.substring(blankLen, c.length);
-          })
-          .filter((c) => {
-            return c.length > 2;
-          });
-        const markdown = await this.markdown;
-        const codeSb = markdown.createStringBuffer();
+        const tbodyNode = gitstCode.querySelector("tbody");
+        if (tbodyNode) {
+          const trTags = tbodyNode.childNodes;
+          const code = Array.from(trTags)
+            .map((tr) => {
+              const c = this.extractCode(tr);
+              // removed the first 20 blank chars
+              const formatc = c.replace(/\n/g, "").substring(20);
+              return formatc;
+            })
+            .filter((c) => c.trim() !== "")
+            .join("\n");
 
-        cmap.forEach((c, index, map) => {
-          codeSb.append(c);
-          if (index !== cmap.length - 1) {
-            codeSb.br();
-          }
-        });
+          codeArray.push(code);
+        }
 
-        codeArray.push(codeSb.toString());
+        // const codea = gitstCode.textContent.split("\n");
+        // const blankLen = codea[1].length;
+        // const cmap = [...codea]
+        //   .map((c) => {
+        //     return c.substring(blankLen, c.length);
+        //   })
+        //   .filter((c) => {
+        //     return c.length > 2;
+        //   });
+        // const markdown = await this.markdown;
+        // const codeSb = markdown.createStringBuffer();
+
+        // cmap.forEach((c, index, map) => {
+        //   codeSb.append(c);
+        //   if (index !== cmap.length - 1) {
+        //     codeSb.br();
+        //   }
+        // });
+
+        // codeArray.push(codeSb.toString());
       }
     }
     return codeArray;
