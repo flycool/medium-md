@@ -9,9 +9,9 @@ export class DomUtils {
         count++;
         const currentElement = stack.pop();
 
-        const result = await parseFunc(currentElement);
+        const isSkip = await parseFunc(currentElement);
 
-        if (result) continue;
+        if (isSkip) continue;
 
         const children = currentElement.children;
         for (let i = children.length - 1; i >= 0; i--) {
@@ -23,7 +23,7 @@ export class DomUtils {
 
   static regexTags(...tags) {
     const regex = new RegExp(
-      `\\b(?:${tags.map((tag) => this.escapeRegExp(tag)).join("|")})\\b`
+      `\\b(?:${tags.map((tag) => this.escapeRegExp(tag)).join("|")})\\b`,
     );
     return regex;
   }
@@ -37,6 +37,23 @@ export class DomUtils {
   // 辅助函数：转义正则特殊字符
   static escapeRegExp(string) {
     return string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  }
+
+  static getContentRoot() {
+    const selectors = [
+      "main",
+      "article",
+      '[role="main"]',
+      ".content",
+      ".main-content",
+    ];
+    for (const selector of selectors) {
+      const element = document.querySelector(selector);
+      if (element) {
+        return element;
+      }
+    }
+    return document.body || document.documentElement;
   }
 
   static extractMainContent() {

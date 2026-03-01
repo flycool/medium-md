@@ -1,4 +1,3 @@
-
 //const proandroiddev = "https://proandroiddev.com/";
 //const medium = "https://medium.com/androiddevelopers/";
 //const kotlin_academy = "https://blog.kotlin-academy.com/";
@@ -6,24 +5,30 @@
 const proandroiddev = "proandroiddev.com";
 const medium = "medium.com";
 const victorbrandalise = "victorbrandalise.com";
-const bilibili = "bilibili.com"
+const bilibili = "bilibili.com";
 const androidDevelopers = "android-developers";
+const kt_academy = "kt.academy";
 
 chrome.action.onClicked.addListener(async (tab) => {
-  if (tab.url.includes(proandroiddev) || tab.url.includes(medium) || tab.url.includes(victorbrandalise)) {
+  if (
+    tab.url.includes(proandroiddev) ||
+    tab.url.includes(medium) ||
+    tab.url.includes(victorbrandalise) ||
+    tab.url.includes(kt_academy)
+  ) {
     chrome.scripting.executeScript({
       target: { tabId: tab.id },
-      files: ["parse.js"],
+      files: ["turndown.js", "common.js"],
     });
   } else if (tab.url.includes(bilibili)) {
     chrome.scripting.executeScript({
       target: { tabId: tab.id },
-      files: ["note.js"], // for bilibili notes
+      files: ["turndown.js", "node.js"], // for bilibili notes
     });
   } else if (tab.url.includes(androidDevelopers)) {
     chrome.scripting.executeScript({
       target: { tabId: tab.id },
-      files: ["androidDevelopers.js"],
+      files: ["turndown.js", "common.js"],
     });
   }
 });

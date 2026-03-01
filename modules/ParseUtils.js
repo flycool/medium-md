@@ -28,6 +28,29 @@ export class ParseUtils {
 
     const tag = node.tagName.toLowerCase();
 
+    if (tag === "div") {
+      const attr = node.getAttribute("role");
+      if (attr === "separator") {
+        sb.append(markdown.separator()).br().br();
+        return true;
+      }
+
+      // const text = Array.from(node.childNodes)
+      //   .map((n) => {
+      //     const re = this.processInline(n);
+      //     console.log("line===", n.tagName, re);
+      //     return this.swapMarkers(re);
+      //   })
+      //   .join("");
+      // sb.append(text).br().br();
+
+      const re = this.processInline(node);
+      console.log("line===", node.tagName, re);
+      sb.append(re).br().br();
+
+      return true;
+    }
+
     if (
       tag === "h1" ||
       tag === "h2" ||
@@ -77,20 +100,13 @@ export class ParseUtils {
       return true;
     }
 
-    if (tag === "div") {
-      const attr = node.getAttribute("role");
-      if (attr === "separator") {
-        sb.append(markdown.separator()).br().br();
-        return true;
-      }
-    }
 
     if (tag === "a") {
       const h2Node = node.querySelector("h2");
       const h2Text = h2Node?.textContent;
 
       let link = node.getAttribute("href");
-      if (link && link.includes("post_audio_button")) {
+      if (link && (link.includes("post_audio_button") || link.startsWith("#")) ) {
         return false;
       }
       const a1 = markdown.a(h2Text ? h2Text : link, link);

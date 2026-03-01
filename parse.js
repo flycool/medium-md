@@ -39,27 +39,33 @@
         }
       }
 
-      const article = document.getElementsByTagName("article")[0];
+      const rootCotent = DomUtils.getContentRoot();
 
       const regex = DomUtils.regexTags("speechify-ignore");
 
       // 深度搜索文章内容，解析文本并忽略特定标签
-      await DomUtils.deepSearchForElement(article, async (currentElement) => {
-        if (!isTagIgnored && DomUtils.ignoreTags(currentElement, regex)) {
-          isTagIgnored = true;
-          return true;
-        }
-
-        if (!isMemberLinkSkipped && currentElement.tagName.toLowerCase() === "a") {
-          const href = currentElement.getAttribute("href");
-          if (href && href.includes(memberUrl)) {
-            isMemberLinkSkipped = true;
+      await DomUtils.deepSearchForElement(
+        rootCotent,
+        async (currentElement) => {
+          if (!isTagIgnored && DomUtils.ignoreTags(currentElement, regex)) {
+            isTagIgnored = true;
             return true;
           }
-        }
 
-        return await ParseUtils.parseElement(sb, currentElement);
-      });
+          if (
+            !isMemberLinkSkipped &&
+            currentElement.tagName.toLowerCase() === "a"
+          ) {
+            const href = currentElement.getAttribute("href");
+            if (href && href.includes(memberUrl)) {
+              isMemberLinkSkipped = true;
+              return true;
+            }
+          }
+
+          return await ParseUtils.parseElement(sb, currentElement);
+        },
+      );
 
       return sb.toString();
     };
