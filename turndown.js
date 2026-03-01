@@ -44,7 +44,6 @@
         "ul",
         "button",
         "img",
-        "span",
         "script",
         "picture",
         "iframe",
@@ -84,7 +83,7 @@
     // Extract text from a node, preserving <br> as "\n".
     // This is important for code blocks where syntax highlighting wraps lines
     // in spans and uses <br> for line breaks (common on blog platforms).
-    function extractTextPreservingBr(node) {
+    function extractCode(node) {
       if (!node) return "";
 
       if (node.nodeType === Node.TEXT_NODE) {
@@ -106,7 +105,7 @@
 
       let out = "";
       for (const child of Array.from(node.childNodes)) {
-        out += extractTextPreservingBr(child);
+        out += extractCode(child);
       }
       return out;
     }
@@ -153,14 +152,6 @@
         return "[" + text + "](" + href + ")";
       }
 
-      // if (tag === "img") {
-      //   const alt = node.getAttribute("alt") || "";
-      //   const src = node.getAttribute("src") || "";
-      //   if (!src || !src.includes("http")) return "";
-      //   return "![" + alt + "](" + src + ")";
-      // }
-
-      // Fallback: inline children
       return childText;
     }
 
@@ -271,12 +262,21 @@
       if (tag === "pre") {
         const codeNode = node.querySelector("code") || node;
         // Use a special extractor to preserve <br> as newlines.
-        let codeText = extractTextPreservingBr(codeNode);
+        let codeText = extractCode(codeNode);
         // Normalize line endings but keep content/spacing intact.
         codeText = codeText.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
         // Trim leading/trailing newlines without eating inner structure.
         codeText = codeText.replace(/^\n+/, "").replace(/\n+$/, "");
         return "```" + codeStyle + "\n" + codeText + "\n```\n\n";
+      }
+
+      if (tag === "iframe") {
+        const gistCodes = getGistFormatCode(node);
+        if (gistCodes.length) {
+          return gistCodes
+            .map((code) => "```" + codeStyle + "\n" + code + "\n```\n\n")
+            .join("");
+        }
       }
 
       if (tag === "blockquote") {
@@ -376,60 +376,58 @@
     }
 
     // get gist code from iframe
-    // function getGistFormatCode(e) {
-    //   let iframdom;
-    //   const codeArray = [];
-    //   try {
-    //     iframdom = e.contentWindow && e.contentWindow.document;
-    //     console.log("iframdom=1=", iframdom)
-    //   } catch (error) {
-    //     console.log("error==", error)
-    //     return codeArray;
-    //   }
+    function getGistFormatCode(e) {
+      let iframdom;
+      const codeArray = [];
+      try {
+        iframdom = e.contentWindow && e.contentWindow.document;
+      } catch (error) {
+        return codeArray;
+      }
 
-    //   if (iframdom) {
-    //     const gistDatas = iframdom.getElementsByClassName("gist-data");
-    //     for (const gitstCode of gistDatas) {
-    //       const tbodyNode = gitstCode.querySelector("tbody");
-    //       if (tbodyNode) {
-    //         const trTags = tbodyNode.childNodes;
-    //         const code = Array.from(trTags)
-    //           .map((tr) => {
-    //             const c = this.extractTextPreservingBr(tr);
-    //             // removed the first 20 blank chars
-    //             const formatc = c.replace(/\n/g, "").substring(20);
-    //             return formatc;
-    //           })
-    //           .filter((c) => c.trim() !== "")
-    //           .join("\n");
+      if (iframdom) {
+        const gistDatas = iframdom.getElementsByClassName("gist-data");
+        for (const gitstCode of gistDatas) {
+          const tbodyNode = gitstCode.querySelector("tbody");
+          if (tbodyNode) {
+            const trTags = tbodyNode.childNodes;
+            const code = Array.from(trTags)
+              .map((tr) => {
+                const c = extractCode(tr);
+                // removed the first 20 blank chars
+                const formatc = c.replace(/\n/g, "").substring(20);
+                return formatc;
+              })
+              .filter((c) => c.trim() !== "")
+              .join("\n");
 
-    //         codeArray.push(code);
-    //       }
+            codeArray.push(code);
+          }
 
-    //       // const codea = gitstCode.textContent.split("\n");
-    //       // const blankLen = codea[1].length;
-    //       // const cmap = [...codea]
-    //       //   .map((c) => {
-    //       //     return c.substring(blankLen, c.length);
-    //       //   })
-    //       //   .filter((c) => {
-    //       //     return c.length > 2;
-    //       //   });
-    //       // const markdown = await this.markdown;
-    //       // const codeSb = markdown.createStringBuffer();
+          // const codea = gitstCode.textContent.split("\n");
+          // const blankLen = codea[1].length;
+          // const cmap = [...codea]
+          //   .map((c) => {
+          //     return c.substring(blankLen, c.length);
+          //   })
+          //   .filter((c) => {
+          //     return c.length > 2;
+          //   });
+          // const markdown = await this.markdown;
+          // const codeSb = markdown.createStringBuffer();
 
-    //       // cmap.forEach((c, index, map) => {
-    //       //   codeSb.append(c);
-    //       //   if (index !== cmap.length - 1) {
-    //       //     codeSb.br();
-    //       //   }
-    //       // });
+          // cmap.forEach((c, index, map) => {
+          //   codeSb.append(c);
+          //   if (index !== cmap.length - 1) {
+          //     codeSb.br();
+          //   }
+          // });
 
-    //       // codeArray.push(codeSb.toString());
-    //     }
-    //   }
-    //   return codeArray;
-    // }
+          // codeArray.push(codeSb.toString());
+        }
+      }
+      return codeArray;
+    }
 
     function swapMarkers(text) {
       return text.replace(/^([`*_]+)(.+?)([`*_]+)$/g, "$3$2$1");
