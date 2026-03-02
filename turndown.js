@@ -123,21 +123,40 @@
       const childText = Array.from(node.childNodes).map(processInline).join("");
 
       if (tag === "strong" || tag === "b") {
-        const trimmed = childText.trim();
-        if (!trimmed) return "";
-        return "**" + trimmed + "**";
+        let restText = childText;
+        let isNotation = checkIsNotation(restText);
+
+        let formatted = "";
+        if (!isNotation) {
+          const strongText = "**" + childText.trim() + "**";
+          formatted = handleBlankText(childText, strongText);
+        } else {
+          formatted = restText;
+        }
+
+        return formatted;
       }
 
-      if (tag === "em" || tag === "i") {
-        const trimmed = childText.trim();
-        if (!trimmed) return "";
-        return "_" + trimmed + "_";
-      }
+      // if (tag === "em" || tag === "i") {
+      //   let restText = childText;
+      //   let isNotation = checkIsNotation(restText);
+
+      //   let formatted = "";
+      //   if (!isNotation) {
+      //     const emText = "_" + childText.trim() + "_";
+      //     formatted = handleBlankText(childText, emText);
+      //   } else {
+      //     formatted = restText;
+      //   }
+
+      //   return formatted;
+      // }
 
       if (tag === "code") {
         const trimmed = childText.trim();
-        if (!trimmed) return "";
-        return "`" + trimmed + "`";
+        const formattedText = "`" + trimmed + "`";
+        const formatted = formatHasBlankText(childText, formattedText);
+        return formatted;
       }
 
       if (tag === "a") {
@@ -150,6 +169,10 @@
           return text;
         }
         return "[" + text + "](" + href + ")";
+      }
+
+      if (tag === "br") {
+        return childText + "\n";
       }
 
       return childText;
@@ -234,10 +257,7 @@
       }
 
       if (tag === "p") {
-        const text = Array.from(node.childNodes)
-          .map(processInline)
-          .join("")
-          .trim();
+        const text = Array.from(node.childNodes).map(processInline).join("");
         if (!text) return "";
         const stext = swapMarkers(text);
         return stext + "\n\n";
@@ -430,7 +450,7 @@
     }
 
     function swapMarkers(text) {
-      return text.replace(/^([`*_]+)(.+?)([`*_]+)$/g, "$3$2$1");
+      return text.replace(/([`*_]+)(.+?)([`*_]+)/g, "$3$2$1");
     }
 
     function processListItem(liNode, indentLevel) {
@@ -455,6 +475,47 @@
 
   function TurndownService(options) {
     this.options = options || {};
+  }
+
+  function handleBlankText(text, formatText) {
+    const st = isStringBlank(text) ? text : formatText;
+    return formatHasBlankText(text, st);
+  }
+
+  function checkIsNotation(str) {
+    let trimStr = str.trim();
+    return trimStr.length === 1 && !isAlphanumberic(trimStr);
+  }
+
+  function isAlphanumberic(str) {
+    return /^[a-zA-Z0-9]+$/.test(str);
+  }
+
+  function isStringBlank(str) {
+    if (str === "") return true;
+    for (const s of str) {
+      if (s !== " ") {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  function formatHasBlankText(originalText, formatTrimText) {
+    const isFirstBlank = originalText.startsWith(" ");
+    const isLastBlank = originalText.at(-1) === " ";
+
+    let result = formatTrimText;
+    const blank = " ";
+
+    if (isFirstBlank && isLastBlank) {
+      result = blank + result + blank;
+    } else if (isFirstBlank) {
+      result = blank + result;
+    } else if (isLastBlank) {
+      result += blank;
+    }
+    return result;
   }
 
   TurndownService.prototype.turndown = function (input) {
