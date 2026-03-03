@@ -51,6 +51,8 @@
     );
   }
 
+  const hostname = typeof location !== "undefined" ? location.hostname : null;
+
   function repeat(str, count) {
     let out = "";
     for (let i = 0; i < count; i++) out += str;
@@ -160,7 +162,7 @@
       }
 
       if (tag === "a") {
-        const domainPrefix = "https://proandroiddev.com";
+        const domainPrefix = "https://" + hostname;
         const httpPrefix = "https";
         let href = node.getAttribute("href");
 
