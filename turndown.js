@@ -160,9 +160,15 @@
       }
 
       if (tag === "a") {
-        const href = node.getAttribute("href");
-        if (href && (href.startsWith("#") || href.includes("medium.com"))) {
-          return "";
+        const domainPrefix = "https://proandroiddev.com";
+        const httpPrefix = "https";
+        let href = node.getAttribute("href");
+
+        if (href) {
+          if (href.startsWith("#")) return "";
+          if (!href.includes(httpPrefix)) {
+            href = domainPrefix + href;
+          }
         }
         const text = childText.trim() || href || "";
         if (!href) {
@@ -291,6 +297,9 @@
       }
 
       if (tag === "iframe") {
+        const videoLink = decodeVideoUrl(node);
+        if (videoLink) return videoLink;
+
         const gistCodes = getGistFormatCode(node);
         if (gistCodes.length) {
           return gistCodes
@@ -393,6 +402,27 @@
       }
 
       return children;
+    }
+
+    function decodeVideoUrl(e) {
+      const src = e.getAttribute("src");
+      if (src === null || !src.includes("youtube")) return;
+
+      const encodeUrl = src
+        .split("&")
+        .filter((target) => {
+          return target.includes("url");
+        })
+        .map((url) => {
+          return url.split("=")[1];
+        });
+
+      const title = e.getAttribute("title");
+      const decodeUrl = decodeURIComponent(encodeUrl);
+      // const alink = markdown.a(`video: ${title}`, decodeUrl);
+      const alink = `[video: ${title}](${decodeUrl})`;
+
+      return alink + "\n\n";
     }
 
     // get gist code from iframe
