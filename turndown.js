@@ -114,6 +114,7 @@
 
     function processInline(node) {
       if (node.nodeType === Node.TEXT_NODE) {
+        console.log("node value: ", node.nodeValue);
         return normalizeText(node.nodeValue);
       }
 
@@ -125,15 +126,14 @@
       const childText = Array.from(node.childNodes).map(processInline).join("");
 
       if (tag === "strong" || tag === "b") {
-        let restText = childText;
-        let isNotation = checkIsNotation(restText);
+        let isNotation = checkIsNotation(childText);
 
         let formatted = "";
         if (!isNotation) {
           const strongText = "**" + childText.trim() + "**";
           formatted = handleBlankText(childText, strongText);
         } else {
-          formatted = restText;
+          formatted = "**" + childText.trim() + "**";
         }
 
         return formatted;
