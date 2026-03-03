@@ -114,7 +114,6 @@
 
     function processInline(node) {
       if (node.nodeType === Node.TEXT_NODE) {
-        console.log("node value: ", node.nodeValue);
         return normalizeText(node.nodeValue);
       }
 
