@@ -285,6 +285,16 @@
         return "![" + alt + "](" + src + ")";
       }
 
+      if (tag === "picture") {
+        const source = node.querySelector("source");
+        const srcset = source.getAttribute("srcset");
+        const srcUrl = srcset ? srcset.split(",")[1].trim() : null; // 720w
+        if (srcUrl) {
+          const alt = node.getAttribute("alt") || "";
+          return "![" + alt + "](" + srcUrl + ")";
+        }
+      }
+
       const codeStyle = "kotlin";
       if (tag === "pre") {
         const codeNode = node.querySelector("code") || node;
@@ -481,7 +491,7 @@
     }
 
     function swapMarkers(text) {
-      return text.replace(/([`*_]+)(.+?)([`*_]+)/g, "$3$2$1");
+      return text.replace(/([`*]+)(.+?)([`*]+)/g, "$3$2$1");
     }
 
     function processListItem(liNode, indentLevel) {
