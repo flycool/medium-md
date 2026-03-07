@@ -112,6 +112,24 @@
       return out;
     }
 
+    function extractMarkdownLinks(input) {
+      if (!input) return [];
+
+      const regex = /\[(.*?)\]\((.*?)\)/g;
+
+      const results = [];
+      let match;
+
+      while ((match = regex.exec(input)) !== null) {
+        results.push({
+          text: match[1],
+          url: match[2],
+        });
+      }
+
+      return results;
+    }
+
     function processInline(node) {
       if (node.nodeType === Node.TEXT_NODE) {
         return normalizeText(node.nodeValue);
@@ -155,7 +173,12 @@
 
       if (tag === "code") {
         const trimmed = childText.trim();
-        const formattedText = "`" + trimmed + "`";
+        let formattedText = "`" + trimmed + "`";
+        if (trimmed.includes("[")) {
+          const fullContext = extractMarkdownLinks(trimmed);
+          formattedText =
+            "[`" + fullContext[0].text + "`](" + fullContext[0].url + ")";
+        }
         const formatted = formatHasBlankText(childText, formattedText);
         return formatted;
       }
