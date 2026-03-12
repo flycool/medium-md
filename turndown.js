@@ -238,16 +238,7 @@
     function processBlock(node, indentLevel) {
       indentLevel = indentLevel || 0;
 
-      const classAttr = node.getAttribute("class");
-      if (classAttr && classAttr.includes("speechify-ignore")) {
-        return "";
-      }
-
-      const role = node.getAttribute("role");
-      if (role === "separator") {
-        return "\n\n---\n\n";
-      }
-
+    
       if (node.nodeType === Node.TEXT_NODE) {
         return normalizeText(node.nodeValue);
       }
@@ -266,6 +257,16 @@
         node.nodeType === Node.DOCUMENT_NODE
       ) {
         return processBlockChildren(node, indentLevel);
+      }
+
+      const classAttr = node.getAttribute("class");
+      if (classAttr && classAttr.includes("speechify-ignore")) {
+        return "";
+      }
+
+      const role = node.getAttribute("role");
+      if (role === "separator") {
+        return "\n\n---\n\n";
       }
 
       const tag = node.tagName.toLowerCase();
