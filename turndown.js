@@ -153,6 +153,10 @@
           formatted = "**" + childText.trim() + "**";
         }
 
+        if(childText.includes("\n")) {
+          formatted += "\n";
+        }
+
         return formatted;
       }
 
@@ -176,6 +180,9 @@
         let formattedText = "`" + trimmed + "`";
         if (trimmed.includes("[")) {
           const fullContext = extractMarkdownLinks(trimmed);
+          if (!fullContext.length) {
+            return formattedText;
+          }
           formattedText =
             "[`" + fullContext[0].text + "`](" + fullContext[0].url + ")";
         }
