@@ -1,1 +1,4 @@
 medium_md.code-workspace
+node_modules
+dist
+bash.exe.stackdump

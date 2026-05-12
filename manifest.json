@@ -2,13 +2,15 @@
   "manifest_version": 3,
   "name": "medium_blog_to_md",
   "description": "medium blog to md",
-  "version": "1.0",
+  "version": "2.0.1",
   "action": {},
   "permissions": ["activeTab", "scripting"],
-  "web_accessible_resources": [{
-    "resources": ["modules/*.js"],
-    "matches": ["<all_urls>"]
-  }],
+  "web_accessible_resources": [
+    {
+      "resources": ["modules/*.js"],
+      "matches": ["<all_urls>"]
+    }
+  ],
   "background": {
     "service_worker": "background.js",
     "type": "module"

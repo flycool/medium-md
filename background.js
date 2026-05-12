@@ -18,17 +18,17 @@ chrome.action.onClicked.addListener(async (tab) => {
   ) {
     chrome.scripting.executeScript({
       target: { tabId: tab.id },
-      files: ["turndown.js", "common.js"],
+      files: ["common.js"],
     });
   } else if (tab.url.includes(bilibili)) {
     chrome.scripting.executeScript({
       target: { tabId: tab.id },
-      files: ["turndown.js", "node.js"], // for bilibili notes
+      files: ["note.js"],
     });
   } else if (tab.url.includes(androidDevelopers)) {
     chrome.scripting.executeScript({
       target: { tabId: tab.id },
-      files: ["turndown.js", "common.js"],
+      files: ["common.js"],
     });
   }
 });

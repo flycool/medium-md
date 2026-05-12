@@ -76,6 +76,47 @@
       .replace(/[ \t\f\v]+/g, " ");
   }
 
+  function handleBlankText(text, formatText) {
+    const st = isStringBlank(text) ? text : formatText;
+    return formatHasBlankText(text, st);
+  }
+
+  function checkIsNotation(str) {
+    let trimStr = str.trim();
+    return trimStr.length === 1 && !isAlphanumberic(trimStr);
+  }
+
+  function isAlphanumberic(str) {
+    return /^[a-zA-Z0-9]+$/.test(str);
+  }
+
+  function isStringBlank(str) {
+    if (str === "") return true;
+    for (const s of str) {
+      if (s !== " ") {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  function formatHasBlankText(originalText, formatTrimText) {
+    const isFirstBlank = originalText.startsWith(" ");
+    const isLastBlank = originalText.at(-1) === " ";
+
+    let result = formatTrimText;
+    const blank = " ";
+
+    if (isFirstBlank && isLastBlank) {
+      result = blank + result + blank;
+    } else if (isFirstBlank) {
+      result = blank + result;
+    } else if (isLastBlank) {
+      result += blank;
+    }
+    return result;
+  }
+
   function domToMarkdown(root) {
     const state = {
       listDepth: 0,
@@ -153,7 +194,7 @@
           formatted = "**" + childText.trim() + "**";
         }
 
-        if(childText.includes("\n")) {
+        if (childText.includes("\n")) {
           formatted += "\n";
         }
 
@@ -238,7 +279,6 @@
     function processBlock(node, indentLevel) {
       indentLevel = indentLevel || 0;
 
-    
       if (node.nodeType === Node.TEXT_NODE) {
         return normalizeText(node.nodeValue);
       }
@@ -547,47 +587,6 @@
 
   function TurndownService(options) {
     this.options = options || {};
-  }
-
-  function handleBlankText(text, formatText) {
-    const st = isStringBlank(text) ? text : formatText;
-    return formatHasBlankText(text, st);
-  }
-
-  function checkIsNotation(str) {
-    let trimStr = str.trim();
-    return trimStr.length === 1 && !isAlphanumberic(trimStr);
-  }
-
-  function isAlphanumberic(str) {
-    return /^[a-zA-Z0-9]+$/.test(str);
-  }
-
-  function isStringBlank(str) {
-    if (str === "") return true;
-    for (const s of str) {
-      if (s !== " ") {
-        return false;
-      }
-    }
-    return true;
-  }
-
-  function formatHasBlankText(originalText, formatTrimText) {
-    const isFirstBlank = originalText.startsWith(" ");
-    const isLastBlank = originalText.at(-1) === " ";
-
-    let result = formatTrimText;
-    const blank = " ";
-
-    if (isFirstBlank && isLastBlank) {
-      result = blank + result + blank;
-    } else if (isFirstBlank) {
-      result = blank + result;
-    } else if (isLastBlank) {
-      result += blank;
-    }
-    return result;
   }
 
   TurndownService.prototype.turndown = function (input) {
